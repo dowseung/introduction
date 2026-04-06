@@ -1,5 +1,8 @@
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8yqJU0ZGStIv7BKToWATo5oj6pooV8KBHz_CTPwbORSdT93aF59rqEO_ENXdmEkUxXL/pub?gid=403210794&single=true&output=csv';
 
+let uniqueWordsList = []; 
+let wordCounts = {}; 
+
 async function init() {
     try {
         const res = await fetch(`${SHEET_URL}&cachebuster=${new Date().getTime()}`);
@@ -9,7 +12,12 @@ async function init() {
             header: false,
             complete: (results) => {
                 const rows = results.data.slice(1);
-                document.fonts.ready.then(() => processAndRender(rows));
+                processData(rows);
+                document.fonts.ready.then(() => {
+                    // 무한 스크롤 초기 분량 확보를 위해 2회 실행
+                    renderBatch();
+                    renderBatch();
+                });
             }
         });
     } catch (err) {
@@ -17,14 +25,8 @@ async function init() {
     }
 }
 
-function processAndRender(rows) {
-    const container = document.getElementById('stream-container');
-    container.innerHTML = ""; 
-
-    const wordCounts = {}; 
-    const winWidth = window.innerWidth;
-    const maxAvailableWidth = winWidth - 120; 
-
+function processData(rows) {
+    wordCounts = {};
     rows.forEach(row => {
         const middleCells = row.slice(1, -1); 
         middleCells.forEach(cell => {
@@ -32,58 +34,76 @@ function processAndRender(rows) {
             const lines = cell.toString().split('\n');
             lines.forEach(line => {
                 const word = line.trim();
-                if (word.length > 0) {
-                    wordCounts[word] = (wordCounts[word] || 0) + 1;
-                }
+                if (word.length > 0) wordCounts[word] = (wordCounts[word] || 0) + 1;
             });
         });
     });
+    uniqueWordsList = Object.keys(wordCounts);
+}
 
-    let uniqueWords = Object.keys(wordCounts);
+function renderBatch() {
+    const container = document.getElementById('stream-container');
+    const winWidth = window.innerWidth;
 
-    // 랜덤 셔플
-    for (let i = uniqueWords.length - 1; i > 0; i--) {
+    // 무작위 셔플
+    let words = [...uniqueWordsList];
+    for (let i = words.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [uniqueWords[i], uniqueWords[j]] = [uniqueWords[j], uniqueWords[i]];
+        [words[i], words[j]] = [words[j], words[i]];
     }
 
-    uniqueWords.forEach(word => {
+    words.forEach(word => {
         const count = wordCounts[word];
+        const wrapper = document.createElement('div');
+        wrapper.className = 'word-wrapper';
+        
         const item = document.createElement('div');
         item.className = 'floating-text';
         item.innerText = word;
 
-        const isSmall = winWidth <= 768;
-        const step = isSmall ? 8 : 16; 
-        const baseSize = isSmall ? 18 : 24;
-        const fontSize = baseSize + (count - 1) * step;
+        // 전체적으로 축소된 텍스트 크기 로직
+        const isMobile = winWidth < 768;
+        const baseSizeFactor = isMobile ? 0.03 : 0.012; 
+        const responsiveBase = (winWidth * baseSizeFactor) + 10;
+        const step = isMobile ? 4 : 8; 
         
+        // 정갈한 크기 (최소 14px, 최대 70px)
+        const fontSize = Math.min(Math.max(responsiveBase + (count - 1) * step, 14), 70);
         item.style.fontSize = `${fontSize}px`;
 
-        // --- [시각적 상단 정렬 보정] ---
-        // 큰 글자일수록 폰트 자체의 상단 여백이 커지므로, 
-        // 폰트 크기에 비례하여 아주 살짝 위로(- margin) 끌어올립니다.
-        const correction = (fontSize * 0.12); // 폰트 크기의 약 12% 보정
-        item.style.marginTop = `-${correction}px`;
-        // 하단 간격이 좁아지는 것을 막기 위해 하단 마진은 다시 확보
-        item.style.marginBottom = `${correction}px`;
+        /**
+         * [시각적 상단선 정밀 보정]
+         * 폰트 크기가 커질수록 자동으로 늘어나는 상단 여백을 상쇄합니다.
+         * fontSize * 0.18 만큼 위로 강제 인양하여 
+         * 모든 글자의 실질적 머리 부분이 라인으로부터 동일한 거리에 위치하게 합니다.
+         */
+        const visualAdjustment = fontSize * 0.18; 
+        item.style.marginTop = `-${visualAdjustment}px`;
 
-        // 8단어 제한 및 창 밖 이탈 방지
-        const wordsArray = word.split(/\s+/);
-        if (wordsArray.length > 8) {
-            const limitWidth = fontSize * 4.2 * 8; 
-            item.style.maxWidth = `${Math.min(limitWidth, maxAvailableWidth)}px`;
-        } else {
-            item.style.maxWidth = `${maxAvailableWidth}px`;
-        }
+        // 8단어 너비 제한 (모바일 5단어)
+        const limitCount = isMobile ? 5 : 8;
+        wrapper.style.maxWidth = `min(${fontSize * 4.5 * limitCount}px, calc(100vw - 120px))`;
 
-        container.appendChild(item);
+        wrapper.appendChild(item);
+        container.appendChild(wrapper);
     });
 }
 
+// 무한 스크롤 이벤트
+window.addEventListener('scroll', () => {
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) {
+        renderBatch();
+    }
+});
+
+// 리사이즈 시 초기화 및 재구성
 window.addEventListener('resize', () => {
-    clearTimeout(window.resizeTimer);
-    window.resizeTimer = setTimeout(init, 250);
+    clearTimeout(window.rt);
+    window.rt = setTimeout(() => {
+        document.getElementById('stream-container').innerHTML = "";
+        renderBatch();
+        renderBatch();
+    }, 200);
 });
 
 init();

@@ -4,6 +4,7 @@ body, html {
     width: 100%;
     overflow-x: hidden; 
     background-color: #ffffff; 
+    /* 영문/숫자: Helvetica Bold, 한글: Asap 800 */
     font-family: "Helvetica Neue", Helvetica, Arial, "Asap", sans-serif;
     font-weight: 800;
     color: #000000;
@@ -12,39 +13,49 @@ body, html {
 #stream-container {
     display: flex;
     flex-wrap: wrap;
-    /* [수정] 상단 정렬을 더 엄격하게 적용 */
-    align-items: flex-start; 
+    justify-content: flex-start;
+    align-items: flex-start;
     align-content: flex-start;
     
-    gap: 15px 35px; /* 상하 간격을 줄여 상단선 강조 */
-    padding: 60px;
-    max-width: 100%;
-    margin: 0 auto;
+    column-gap: 40px; /* 단어 사이 간격 */
+    row-gap: 120px;   /* 줄 사이 간격 (그리드 층) */
+    
+    padding: 100px 60px; 
     box-sizing: border-box;
+    min-height: 101vh;
+}
+
+/* 상단 라인을 포함하는 단어 래퍼 */
+.word-wrapper {
+    position: relative;
+    display: inline-block;
+    vertical-align: top;
+    /* 1.5pt 블랙 가이드 라인 */
+    border-top: 1.5pt solid #000000;
+    /* 라인과 글자 상단 사이의 시각적 여백 (고정값) */
+    padding-top: 25px; 
+}
+
+/* 라인이 옆 단어와 이어져 하나의 긴 수평선처럼 보이게 연장 */
+.word-wrapper::after {
+    content: "";
+    position: absolute;
+    top: -1.5pt;
+    left: 100%;
+    width: 100vw;
+    height: 1.5pt;
+    background-color: #000000;
 }
 
 .floating-text {
-    position: relative; 
-    display: flex; /* 내부 요소 정렬을 위해 flex로 변경 */
-    align-items: flex-start;
-
-    /* [핵심] 폰트 내부의 상단 여백을 강제로 제거하기 위해 1보다 작은 값 적용 */
-    line-height: 0.8; 
-    
-    /* 큰 글자에서 위쪽이 뜨는 현상을 방지하기 위해 상단 마진 제거 */
-    margin-top: 0;
-    padding-top: 0;
-
+    /* 텍스트 박스 자체의 여백 최소화 */
+    line-height: 1; 
     letter-spacing: -0.04em;
     text-align: left;
     cursor: default;
     user-select: none;
-    color: #000000;
     box-sizing: border-box;
-
     white-space: normal; 
     word-break: keep-all; 
     overflow-wrap: break-word;
-    
-    max-width: calc(100vw - 120px); 
 }
