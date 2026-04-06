@@ -1,17 +1,17 @@
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8yqJU0ZGStIv7BKToWATo5oj6pooV8KBHz_CTPwbORSdT93aF59rqEO_ENXdmEkUxXL/pub?gid=403210794&single=true&output=csv';
 
+let placedRects = []; 
+
 async function init() {
     try {
-        // 실시간 반영을 위해 타임스탬프 추가
         const res = await fetch(`${SHEET_URL}&cachebuster=${new Date().getTime()}`);
         const csvText = await res.text();
         
         Papa.parse(csvText, {
             header: false,
             complete: (results) => {
-                // 1행(헤더)을 제외하고 데이터 추출
                 const rows = results.data.slice(1);
-                renderStream(rows);
+                processAndRender(rows);
             }
         });
     } catch (err) {
@@ -19,37 +19,96 @@ async function init() {
     }
 }
 
-function renderStream(rows) {
+function processAndRender(rows) {
     const container = document.getElementById('stream-container');
     container.innerHTML = ""; 
+    placedRects = []; 
+
+    const wordCounts = {}; 
+    const winWidth = window.innerWidth;
 
     rows.forEach(row => {
-        // 오직 1열(index 0)의 텍스트만 가져옵니다.
-        let mainText = (row[0] || "").toString().replace(/-/g, "").trim();
-        
-        // 데이터가 비어있으면 건너뜁니다.
-        if (!mainText) return;
+        const middleCells = row.slice(1, -1); 
+        middleCells.forEach(cell => {
+            if (!cell) return;
+            const lines = cell.toString().split('\n');
+            lines.forEach(line => {
+                const word = line.trim();
+                if (word.length > 0) {
+                    wordCounts[word] = (wordCounts[word] || 0) + 1;
+                }
+            });
+        });
+    });
 
+    const uniqueWords = Object.keys(wordCounts);
+    
+    // 촘촘한 배치를 위해 컨테이너 높이 비율을 살짝 줄임 (밀도 증가)
+    container.style.height = `${Math.max(100, uniqueWords.length * 8)}vh`;
+    const containerWidth = container.offsetWidth;
+    const containerHeight = container.offsetHeight;
+
+    uniqueWords.forEach(word => {
+        const count = wordCounts[word];
         const item = document.createElement('div');
         item.className = 'floating-text';
-        
-        // 빨간색 강조 없이 순수 텍스트만 삽입합니다.
-        item.innerText = mainText; 
+        item.innerText = word;
 
-        // 가로 위치 랜덤 배치 (0% ~ 55%)
-        const randomLeft = Math.random() * 55;
-        item.style.marginLeft = `${randomLeft}%`;
+        const isSmall = winWidth <= 768;
+        const step = isSmall ? 6 : 12; 
+        const baseSize = isSmall ? 15 : 20;
+        item.style.fontSize = `${baseSize + (count - 1) * step}px`;
 
-        // 세로 간격 랜덤 배치 (50px ~ 150px)
-        const randomMarginTop = Math.random() * 100 + 50;
-        item.style.marginTop = `${randomMarginTop}px`;
-
-        // 부유 애니메이션 속도 랜덤화
-        const duration = Math.random() * 5 + 4;
-        item.style.animation = `sway ${duration}s infinite alternate ease-in-out`;
-
+        item.style.visibility = 'hidden';
         container.appendChild(item);
+        
+        const w = item.offsetWidth;
+        const h = item.offsetHeight;
+
+        let foundPosition = false;
+        let attempts = 0;
+        let x = 0, y = 0;
+
+        // --- 배치 최적화: 시도 횟수를 대폭 늘려 좁은 틈을 찾음 ---
+        while (!foundPosition && attempts < 500) {
+            // 벽면 여백도 최소화 (5px)
+            x = Math.random() * (containerWidth - w - 10) + 5;
+            y = Math.random() * (containerHeight - h - 10) + 5;
+
+            if (!checkCollision(x, y, w, h)) {
+                foundPosition = true;
+            }
+            attempts++;
+        }
+
+        if (foundPosition) {
+            item.style.left = `${x}px`;
+            item.style.top = `${y}px`;
+            item.style.visibility = 'visible';
+            placedRects.push({ x, y, w, h });
+        } else {
+            container.removeChild(item);
+        }
     });
 }
+
+function checkCollision(x, y, w, h) {
+    // --- 핵심 수정: 텍스트 간 물리적 간격을 2px로 축소 ---
+    const padding = 2; 
+    for (const rect of placedRects) {
+        if (
+            x < rect.x + rect.w + padding &&
+            x + w + padding > rect.x &&
+            y < rect.y + rect.h + padding &&
+            y + h + padding > rect.y
+        ) return true;
+    }
+    return false;
+}
+
+window.addEventListener('resize', () => {
+    clearTimeout(window.resizeTimer);
+    window.resizeTimer = setTimeout(init, 200);
+});
 
 init();

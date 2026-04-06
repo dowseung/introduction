@@ -4,34 +4,30 @@ body, html {
     width: 100%;
     overflow-x: hidden; 
     background-color: #ffffff; 
-    font-family: 'Pretendard', -apple-system, sans-serif;
-    color: #000000; /* 전체 텍스트 검은색 */
+    font-family: 'Pretendard', sans-serif;
+    color: #000000;
 }
 
 #stream-container {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    padding-top: 100px;
-    padding-bottom: 300px;
+    position: relative;
+    width: 100vw;
+    min-height: 100vh;
+    box-sizing: border-box;
+    /* 상하 여백을 줄여 더 꽉 차 보이게 함 */
+    padding: 20px 0; 
 }
 
 .floating-text {
-    width: 100%;
-    max-width: 450px;       
-    text-align: left;
-    line-height: 1.7;
-    word-break: keep-all;   
-    overflow-wrap: break-word;
-    hyphens: none;
+    position: absolute;
+    display: inline-block;
+    line-height: 1.0; /* 줄 간격을 극단적으로 줄임 */
     cursor: default;
     user-select: none;
-    font-size: 16px;
-    opacity: 0.8;
-    margin-bottom: 60px; 
-}
-
-@keyframes sway {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(20px); }
+    color: #000000;
+    /* 간격을 촘촘하게 하기 위해 패딩을 최소화 */
+    padding: 2px; 
+    box-sizing: border-box;
+    white-space: normal; 
+    word-break: keep-all; 
+    max-width: 95vw;
 }
