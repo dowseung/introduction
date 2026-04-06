@@ -3,9 +3,7 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8
 let allRows = [], wordToSourceMap = {}, wordToBColumnMap = {}, wordToRowIndicesMap = {}, wordToColumnMap = {}, uniqueWordsList = [], wordCounts = {}, currentSelectedWrapper = null, currentFilterCol = null;
 
 function preventDefaultScroll(e) {
-    if (!e.target.closest('.node-container') && !e.target.closest('.side-column-sub') && !e.target.closest('.side-column-main')) {
-        e.preventDefault();
-    }
+    if (!e.target.closest('.node-container') && !e.target.closest('.side-column-sub') && !e.target.closest('.side-column-main')) { e.preventDefault(); }
 }
 
 async function init() {
@@ -22,49 +20,36 @@ async function init() {
                 document.fonts.ready.then(() => { renderBatch(); renderBatch(); });
             }
         });
-    } catch (err) { console.error("데이터 로드 실패", err); }
+    } catch (err) { console.error("로드 실패", err); }
 }
 
 function renderTopBar(header) {
     const topBar = document.getElementById('top-bar');
-    if (!header) return;
     for (let i = 1; i <= 12; i++) {
         if (header[i]) {
             const item = document.createElement('div');
             item.className = 'top-bar-item';
             item.innerText = header[i];
-            item.onclick = (e) => {
-                e.stopPropagation();
-                toggleColumnFilter(i, item);
-            };
+            item.onclick = (e) => { e.stopPropagation(); toggleColumnFilter(i, item); };
             topBar.appendChild(item);
         }
     }
 }
 
 function toggleColumnFilter(colIndex, element) {
-    const container = document.getElementById('stream-container');
-    const items = document.querySelectorAll('.top-bar-item');
-    const wrappers = document.querySelectorAll('.word-wrapper');
-    
-    if (currentFilterCol === colIndex) {
-        resetAll(); // 이미 선택된 배너 다시 누르면 전체 초기화
-    } else {
-        currentFilterCol = colIndex;
-        items.forEach(it => it.classList.remove('active-b', 'active-other'));
-        if (colIndex === 1) element.classList.add('active-b');
-        else element.classList.add('active-other');
-
-        container.classList.add('filtered');
-        wrappers.forEach(wrapper => {
-            const word = wrapper.querySelector('.floating-text').innerText;
-            wrapper.classList.remove('highlight', 'highlight-blue');
-            if (wordToColumnMap[word] && wordToColumnMap[word].has(colIndex)) {
-                wrapper.classList.add('highlight');
-                if (colIndex === 1) wrapper.classList.add('highlight-blue');
-            }
-        });
-    }
+    if (currentFilterCol === colIndex) { resetAll(); return; }
+    currentFilterCol = colIndex;
+    document.querySelectorAll('.top-bar-item').forEach(it => it.classList.remove('active-b', 'active-other'));
+    colIndex === 1 ? element.classList.add('active-b') : element.classList.add('active-other');
+    document.getElementById('stream-container').classList.add('filtered');
+    document.querySelectorAll('.word-wrapper').forEach(wrapper => {
+        const word = wrapper.querySelector('.floating-text').innerText;
+        wrapper.classList.remove('highlight', 'highlight-blue');
+        if (wordToColumnMap[word] && wordToColumnMap[word].has(colIndex)) {
+            wrapper.classList.add('highlight');
+            if (colIndex === 1) wrapper.classList.add('highlight-blue');
+        }
+    });
 }
 
 function processData(rows) {
@@ -112,7 +97,7 @@ function renderBatch() {
 }
 
 function toggleInteraction(target, word) {
-    if (target.classList.contains('selected')) { closeDetailOnly(); return; }
+    if (target.classList.contains('selected')) { resetAll(); return; }
     closeDetailOnly();
     target.classList.add('selected');
     currentSelectedWrapper = target;
@@ -123,15 +108,14 @@ function toggleInteraction(target, word) {
 
     const nodeGroup = document.createElement('div');
     nodeGroup.className = 'node-container'; nodeGroup.id = 'active-panel';
-
-    // 모든 단어(B열 포함)에 대해 동일하게 하이라이트 효과 적용
+    // 패널 내부 클릭 시 초기화되지 않도록
+    nodeGroup.onclick = (e) => e.stopPropagation(); 
     Array.from(wordToSourceMap[word]).forEach((text) => {
         const node = document.createElement('div');
         node.className = 'node-text';
         node.innerHTML = highlightKeywords(text);
         nodeGroup.appendChild(node);
     });
-
     document.body.appendChild(nodeGroup);
     updatePanelPosition();
 }
@@ -143,7 +127,8 @@ function highlightKeywords(text) {
         if (word.length < 1) return;
         const regex = new RegExp(`(?<!<[^>]*)${escapeRegExp(word)}(?![^<]*>)`, 'g');
         highlightedText = highlightedText.replace(regex, 
-            `<span class="keyword-link" onmouseenter="addBorder(this)" onmouseleave="removeBorder(this)" onclick="event.stopPropagation(); showSidePanel('${word.replace(/'/g, "\\'")}')">
+            `<span class="keyword-link" 
+                   onclick="handleKeywordClick(event, this, '${word.replace(/'/g, "\\'")}')">
                 <span class="inner-text">${word}</span>
             </span>`
         );
@@ -151,93 +136,76 @@ function highlightKeywords(text) {
     return highlightedText;
 }
 
-function addBorder(el) {
-    if (el.querySelector('svg')) return;
-    const rect = el.getBoundingClientRect();
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("class", "keyword-border-svg");
-    svg.setAttribute("viewBox", `0 0 ${rect.width + 10} ${rect.height + 10}`);
-    const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    r.setAttribute("x", "5"); r.setAttribute("y", "5");
-    r.setAttribute("width", rect.width); r.setAttribute("height", rect.height);
-    r.setAttribute("class", "rect-border");
-    svg.appendChild(r); el.appendChild(svg);
+function handleKeywordClick(event, el, word) {
+    event.stopPropagation();
+    const isActive = el.classList.contains('active-keyword');
+    
+    document.querySelectorAll('.keyword-link.active-keyword').forEach(link => {
+        link.classList.remove('active-keyword');
+    });
+
+    if (isActive) {
+        const side = document.getElementById('side-panel'); if (side) side.remove();
+    } else {
+        el.classList.add('active-keyword');
+        showSidePanel(word);
+    }
 }
 
-function removeBorder(el) { const svg = el.querySelector('svg'); if (svg) svg.remove(); }
-
 function showSidePanel(word) {
-    const existing = document.getElementById('side-panel');
-    if (existing) existing.remove();
+    const existing = document.getElementById('side-panel'); if (existing) existing.remove();
     const sidePanel = document.createElement('div');
     sidePanel.id = 'side-panel';
     sidePanel.onclick = (e) => e.stopPropagation();
-    const mainColumn = document.createElement('div'); 
-    mainColumn.className = 'side-column-main';
-    mainColumn.onwheel = (e) => e.stopPropagation();
-    mainColumn.ontouchmove = (e) => e.stopPropagation();
-    const subColumn = document.createElement('div'); 
-    subColumn.className = 'side-column-sub';
+    const mainColumn = document.createElement('div'); mainColumn.className = 'side-column-main';
+    const subColumn = document.createElement('div'); subColumn.className = 'side-column-sub';
     subColumn.style.display = 'none';
-    subColumn.onwheel = (e) => e.stopPropagation();
-    subColumn.ontouchmove = (e) => e.stopPropagation();
 
     const activePanel = document.getElementById('active-panel');
-    const winWidth = window.innerWidth;
     if (activePanel) {
         const rect = activePanel.getBoundingClientRect();
-        if ((rect.left + rect.width / 2) < winWidth / 2) {
-            sidePanel.style.right = '40px'; sidePanel.style.left = 'auto';
-            sidePanel.style.flexDirection = 'row-reverse';
-            subColumn.style.marginRight = '40px';
+        if ((rect.left + rect.width / 2) < window.innerWidth / 2) {
+            sidePanel.style.right = '40px'; sidePanel.style.left = 'auto'; sidePanel.style.flexDirection = 'row-reverse';
         } else {
-            sidePanel.style.left = '40px'; sidePanel.style.right = 'auto';
-            sidePanel.style.flexDirection = 'row';
-            subColumn.style.marginLeft = '40px';
+            sidePanel.style.left = '40px'; sidePanel.style.right = 'auto'; sidePanel.style.flexDirection = 'row';
         }
     }
 
-    const fillRelatedWords = (targetWord, clickedPinkItem) => {
-        subColumn.innerHTML = '';
-        const rowIndices = wordToRowIndicesMap[targetWord];
-        if (!rowIndices) return;
-        const relatedWords = new Set();
-        rowIndices.forEach(idx => {
-            const row = allRows[idx];
-            if (row[1] === clickedPinkItem) {
-                for (let i = 1; i <= 12; i++) {
-                    const cell = row[i];
-                    if (cell) {
-                        cell.toString().split('\n').forEach(w => {
-                            const trimmed = w.trim();
-                            if (trimmed) relatedWords.add(trimmed);
-                        });
+    const handlePinkClick = (el, targetWord, clickedPinkItem) => {
+        const isAlreadyActive = el.classList.contains('active-pink');
+        document.querySelectorAll('.side-item-pink').forEach(item => item.classList.remove('active-pink'));
+        subColumn.innerHTML = ''; subColumn.style.display = 'none';
+
+        if (!isAlreadyActive) {
+            el.classList.add('active-pink');
+            const rowIndices = wordToRowIndicesMap[targetWord];
+            const relatedWords = new Set();
+            rowIndices.forEach(idx => {
+                const row = allRows[idx];
+                if (row[1] === clickedPinkItem) {
+                    for (let i = 1; i <= 12; i++) {
+                        if (row[i]) row[i].toString().split('\n').forEach(w => { if(w.trim()) relatedWords.add(w.trim()); });
                     }
                 }
-            }
-        });
-        if (relatedWords.size > 0) {
-            subColumn.style.display = 'flex';
-            relatedWords.forEach(w => {
-                const item = document.createElement('div');
-                item.className = 'side-item-red'; item.innerText = w;
-                subColumn.appendChild(item);
             });
-            subColumn.scrollTop = 0;
-        } else { subColumn.style.display = 'none'; }
+            if (relatedWords.size > 0) {
+                subColumn.style.display = 'flex';
+                relatedWords.forEach(w => {
+                    const item = document.createElement('div'); item.className = 'side-item-red'; item.innerText = w;
+                    subColumn.appendChild(item);
+                });
+            }
+        }
     };
 
     const bTexts = wordToBColumnMap[word];
-    if (bTexts) {
-        Array.from(bTexts).forEach(text => {
-            const item = document.createElement('div');
-            item.className = 'side-item-pink'; item.innerText = text;
-            item.onclick = (e) => { e.stopPropagation(); fillRelatedWords(word, text); }; 
-            mainColumn.appendChild(item);
-        });
-    }
-    sidePanel.appendChild(mainColumn);
-    sidePanel.appendChild(subColumn);
+    if (bTexts) bTexts.forEach(text => {
+        const item = document.createElement('div');
+        item.className = 'side-item-pink'; item.innerText = text;
+        item.onclick = (e) => { e.stopPropagation(); handlePinkClick(item, word, text); }; 
+        mainColumn.appendChild(item);
+    });
+    sidePanel.appendChild(mainColumn); sidePanel.appendChild(subColumn);
     document.body.appendChild(sidePanel);
 }
 
@@ -251,28 +219,29 @@ function updatePanelPosition() {
     panel.style.left = `${Math.max(20, Math.min(posX, winWidth - boxWidth - 40))}px`;
 }
 
-// 상세 창만 닫기
 function closeDetailOnly() {
     document.body.classList.remove('stop-scroll');
-    window.removeEventListener('wheel', preventDefaultScroll);
-    window.removeEventListener('touchmove', preventDefaultScroll);
     document.getElementById('stream-container').classList.remove('dimmed');
     document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('selected'));
+    document.querySelectorAll('.keyword-link').forEach(l => l.classList.remove('active-keyword'));
     document.querySelectorAll('.node-container, #side-panel').forEach(n => n.remove());
     currentSelectedWrapper = null;
+    window.removeEventListener('wheel', preventDefaultScroll);
+    window.removeEventListener('touchmove', preventDefaultScroll);
 }
 
-// 전체 초기화 (배너 필터까지 해제)
+// 배경(빈 공간) 클릭 시 모든 필터 및 패널 초기화
 function resetAll() {
     closeDetailOnly();
     currentFilterCol = null;
-    const container = document.getElementById('stream-container');
-    container.classList.remove('filtered');
+    document.getElementById('stream-container').classList.remove('filtered');
     document.querySelectorAll('.top-bar-item').forEach(it => it.classList.remove('active-b', 'active-other'));
     document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('highlight', 'highlight-blue'));
 }
 
+// 문서 전체에 클릭 이벤트 등록 (stopPropagation이 적용되지 않은 빈 공간 클릭 시 resetAll 실행)
 document.addEventListener('click', resetAll);
+
 window.addEventListener('resize', () => { if (currentSelectedWrapper) updatePanelPosition(); });
 window.addEventListener('scroll', () => { if (!document.body.classList.contains('stop-scroll') && (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800)) renderBatch(); });
 init();
