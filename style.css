@@ -103,7 +103,25 @@ body, html {
 .keyword-link { cursor: pointer; color: inherit; }
 .keyword-link:hover .inner-text, .keyword-link.active-keyword .inner-text { color: #00ff00 !important; }
 #side-panel { position: fixed; z-index: 1005; display: flex; gap: 20px; pointer-events: none; }
-.side-column-main { width: min(300px, 60vw); pointer-events: auto; display: flex; flex-direction: column; gap: 20px; }
+/* --- 핑크색 텍스트가 담기는 메인 컬럼 수정 --- */
+.side-column-main {
+    width: min(300px, 60vw);
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    
+    /* [추가] 최대 높이 설정 및 스크롤 활성화 */
+    max-height: 65vh;      /* 빨간색 패널과 동일하게 화면 높이의 65%로 제한 */
+    overflow-y: auto;      /* 내용이 길어지면 세로 스크롤 생성 */
+    scrollbar-width: none;  /* 스크롤바 숨기기 (Firefox) */
+    padding-right: 5px;    /* 스크롤 시 글자가 잘리지 않도록 미세한 여백 */
+}
+
+/* 크롬, 사파리에서 핑크색 컬럼 스크롤바 숨기기 */
+.side-column-main::-webkit-scrollbar {
+    display: none;
+}
 .side-column-sub {
     width: min(500px, 80vw);
     
@@ -141,7 +159,17 @@ body, html {
 }
 
 .side-column-sub::-webkit-scrollbar { display: none; }
-.side-item-pink { color: #FF007F; border-top: 1.5pt solid #FF007F; padding-top: 10px; font-size: 15px; display: flex; justify-content: space-between; cursor: pointer; }
+.side-item-pink {
+    color: #FF007F;
+    border-top: 1.5pt solid #FF007F;
+    padding-top: 10px;
+    font-size: 15px;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    flex-shrink: 0;        /* 스크롤 시 아이템 크기가 찌그러지지 않게 고정 */
+    line-height: 1.4;      /* 핑크색 텍스트도 2줄 이상일 때 대비해 행간 확보 */
+}
 .side-icon-graphic { width: 20px; height: 14px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.3s; }
 .side-icon-graphic.active-rotate { transform: rotate(90deg); }
 .side-icon-graphic span { height: 2px; background: #FF007F; width: 100%; }
