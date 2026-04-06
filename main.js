@@ -2,10 +2,12 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8
 
 let allRows = [], wordToSourceMap = {}, wordToBColumnMap = {}, wordToRowIndicesMap = {}, wordToColumnMap = {}, uniqueWordsList = [], wordCounts = {}, currentSelectedWrapper = null, currentFilterCol = null;
 
-const bigOverlay = document.createElement('div');
+const bigOverlay = document.getElementById('full-screen-overlay') || document.createElement('div');
 bigOverlay.id = 'full-screen-overlay';
-bigOverlay.innerHTML = '<div id="big-text-display"></div>';
+bigOverlay.innerHTML = `<div id="resizer-handle"></div><div id="overlay-content"><div id="big-text-display"></div></div>`;
 document.body.appendChild(bigOverlay);
+
+bigOverlay.querySelector('#resizer-handle').onclick = (e) => e.stopPropagation();
 
 async function init() {
     try {
@@ -43,7 +45,6 @@ function processData(rows) {
     uniqueWordsList = Object.keys(wordCounts).sort((a, b) => b.length - a.length);
 }
 
-// [기존] 상단 바 및 필터 로직
 function renderTopBar(header) {
     const topBar = document.getElementById('top-bar');
     for (let i = 1; i <= 12; i++) {
@@ -51,18 +52,28 @@ function renderTopBar(header) {
             const item = document.createElement('div');
             item.className = 'top-bar-item';
             item.innerText = header[i];
-            item.onclick = (e) => { e.stopPropagation(); if(currentSelectedWrapper) closeDetailOnly(); toggleColumnFilter(i, item); };
+            item.onclick = (e) => { 
+                e.stopPropagation(); 
+                if(currentSelectedWrapper) closeDetailOnly(); 
+                toggleColumnFilter(i, item); 
+            };
             topBar.appendChild(item);
         }
     }
 }
 
 function toggleColumnFilter(colIndex, element) {
-    if (currentFilterCol === colIndex) { clearFilterState(); return; }
+    const container = document.getElementById('stream-container');
+    if (currentFilterCol === colIndex) { 
+        clearFilterState(); 
+        return; 
+    }
     currentFilterCol = colIndex;
     document.querySelectorAll('.top-bar-item').forEach(it => it.classList.remove('active-b', 'active-other'));
     element.classList.add(colIndex === 1 ? 'active-b' : 'active-other');
-    document.getElementById('stream-container').classList.add('filtered');
+    
+    container.classList.add('filtered'); // 투명도 효과 시작
+    
     document.querySelectorAll('.word-wrapper').forEach(wrapper => {
         const word = wrapper.querySelector('.floating-text').innerText;
         wrapper.classList.remove('highlight', 'highlight-blue');
@@ -73,7 +84,6 @@ function toggleColumnFilter(colIndex, element) {
     });
 }
 
-// [기존] 스트림 렌더링 - 글자 크기 가변 로직 유지
 function renderBatch() {
     const container = document.getElementById('stream-container');
     const winWidth = window.innerWidth;
@@ -82,20 +92,19 @@ function renderBatch() {
         wrapper.className = 'word-wrapper';
         const item = document.createElement('div');
         item.className = 'floating-text'; item.innerText = word;
-        const fontSize = Math.min(Math.max((winWidth * 0.015) + (wordCounts[word] - 1) * 8, 24), 110);
+        const fontSize = Math.min(Math.max((winWidth * 0.015) + (wordCounts[word] - 1) * 8, 20), 110);
         item.style.fontSize = `${fontSize}px`;
         wrapper.onclick = (e) => { e.stopPropagation(); toggleInteraction(wrapper, word); };
         wrapper.append(item); container.append(wrapper);
     });
 }
 
-// [기존] 상세 노드 클릭 트리거 (핑크 패널은 여기서 나오지 않음!)
 function toggleInteraction(target, word) {
     if (target.classList.contains('selected')) { closeDetailOnly(); return; }
     closeDetailOnly();
     target.classList.add('selected');
     currentSelectedWrapper = target;
-    document.getElementById('stream-container').classList.add('dimmed');
+    document.getElementById('stream-container').classList.add('dimmed'); // 나머지 단어 투명하게
     
     const panel = document.createElement('div');
     panel.className = 'node-container'; panel.id = 'active-panel';
@@ -119,12 +128,10 @@ function highlightKeywords(text) {
     return html;
 }
 
-// [기존/수정] 형광 초록 클릭 시에만 사이드 패널 호출
 function handleKeywordClick(e, el, word) {
     e.stopPropagation();
     const isActive = el.classList.contains('active-keyword');
     document.querySelectorAll('.keyword-link').forEach(l => l.classList.remove('active-keyword'));
-    
     if (isActive) {
         const side = document.getElementById('side-panel'); if (side) side.remove();
     } else {
@@ -133,7 +140,6 @@ function handleKeywordClick(e, el, word) {
     }
 }
 
-// [신규] 사이드 패널 및 회전 아이콘 로직
 function showSidePanel(word) {
     const existing = document.getElementById('side-panel'); if (existing) existing.remove();
     const side = document.createElement('div'); side.id = 'side-panel';
@@ -144,7 +150,6 @@ function showSidePanel(word) {
     wordToBColumnMap[word]?.forEach(text => {
         const container = document.createElement('div');
         container.className = 'side-item-pink';
-
         const label = document.createElement('span');
         label.innerText = text;
         label.onclick = (e) => { e.stopPropagation(); handlePinkClick(container, word, text, subCol); };
@@ -156,27 +161,20 @@ function showSidePanel(word) {
         icon.onclick = (e) => {
             e.stopPropagation();
             const isOpened = icon.classList.contains('active-rotate');
-            
-            // 다른 모든 회전 아이콘 초기화 (선택 사항: 현재 클릭한 것만 작동하도록 함)
             document.querySelectorAll('.side-icon-graphic').forEach(i => i.classList.remove('active-rotate'));
             
             if (isOpened) {
-                // 재클릭 시: 회전 해제 및 오버레이 닫기
                 bigOverlay.style.display = 'none';
             } else {
-                // 클릭 시: 회전 고정 및 오버레이 열기
                 icon.classList.add('active-rotate');
                 const idx = Array.from(wordToRowIndicesMap[word]).find(i => allRows[i][1] === text);
                 if (idx !== undefined) {
-                    const display = document.getElementById('big-text-display');
-                    display.innerText = allRows[idx][0];
+                    document.getElementById('big-text-display').innerText = allRows[idx][0];
                     bigOverlay.style.display = 'flex';
-                    bigOverlay.scrollTo(0, 0);
                 }
             }
         };
-
-        container.append(label, icon); // 텍스트 좌측, 그래픽 우측 끝
+        container.append(label, icon);
         mainCol.appendChild(container);
     });
     side.append(mainCol, subCol);
@@ -191,9 +189,8 @@ function handlePinkClick(el, word, bText, sub) {
     if (!isActive) {
         el.classList.add('active-pink');
         sub.style.display = 'flex';
-        const rowIndices = wordToRowIndicesMap[word];
         const related = new Set();
-        rowIndices.forEach(idx => {
+        wordToRowIndicesMap[word].forEach(idx => {
             if(allRows[idx][1] === bText) {
                 for(let i=1; i<=12; i++) if(allRows[idx][i]) allRows[idx][i].split('\n').forEach(v => related.add(v.trim()));
             }
@@ -206,10 +203,9 @@ function handlePinkClick(el, word, bText, sub) {
     }
 }
 
-// [기존] 리셋 및 위치 보정 로직
 function resetAll() {
-    if (bigOverlay.style.display === 'flex') { 
-        bigOverlay.style.display = 'none'; 
+    if (bigOverlay.style.display === 'flex') {
+        bigOverlay.style.display = 'none';
         document.querySelectorAll('.side-icon-graphic').forEach(i => i.classList.remove('active-rotate'));
         return; 
     }
@@ -237,10 +233,16 @@ function updatePanelPosition() {
     if (!panel || !currentSelectedWrapper) return;
     const rect = currentSelectedWrapper.getBoundingClientRect();
     const winWidth = window.innerWidth;
+    const panelW = Math.min(450, winWidth * 0.9);
+    
     if (winWidth > 768) {
-        let posX = (rect.left + rect.width / 2 < winWidth / 2) ? rect.left + rect.width + 40 : rect.left - 490;
-        panel.style.left = `${Math.max(60, Math.min(posX, winWidth - 510))}px`;
-    } else { panel.style.left = `5%`; }
+        let posX = (rect.left + rect.width / 2 < winWidth / 2) ? rect.right + 40 : rect.left - panelW - 40;
+        panel.style.left = `${Math.max(20, Math.min(posX, winWidth - panelW - 20))}px`;
+        panel.style.top = '120px';
+    } else {
+        panel.style.left = '5%';
+        panel.style.top = '90px';
+    }
 }
 
 function updateSidePanelLayout(side) {
@@ -248,11 +250,13 @@ function updateSidePanelLayout(side) {
     const activePanel = document.getElementById('active-panel');
     if (activePanel && winWidth > 768) {
         const rect = activePanel.getBoundingClientRect();
-        if ((rect.left + rect.width / 2) < winWidth / 2) {
-            side.style.right = '60px'; side.style.left = 'auto'; side.style.flexDirection = 'row-reverse';
-        } else { side.style.left = '60px'; side.style.right = 'auto'; side.style.flexDirection = 'row'; }
+        side.style.top = '120px';
+        if (rect.left < winWidth / 2) {
+            side.style.right = '40px'; side.style.left = 'auto'; side.style.flexDirection = 'row-reverse';
+        } else { side.style.left = '40px'; side.style.right = 'auto'; side.style.flexDirection = 'row'; }
     }
 }
 
 document.addEventListener('click', resetAll);
+window.addEventListener('resize', () => { if(currentSelectedWrapper) updatePanelPosition(); });
 init();

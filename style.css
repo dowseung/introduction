@@ -1,45 +1,68 @@
-/* --- [기존] 기본 레이아웃 및 폰트 설정 --- */
+/* --- 1. 기본 레이아웃 --- */
+* { box-sizing: border-box; }
 body, html {
-    margin: 0; padding: 0; width: 100%; overflow-x: hidden;
+    margin: 0; padding: 0; width: 100%; height: 100%;
     background-color: #ffffff;
-    font-family: "Helvetica Neue", Helvetica, Arial, "Asap", sans-serif;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 800; color: #000000;
 }
-body.stop-scroll { overflow: hidden !important; }
 
-/* [기존] 상단 바 - 줄바꿈 방지 및 간격 유지 */
+/* --- 2. 상단 바 --- */
 #top-bar {
     position: fixed; top: 0; left: 0; width: 100%; height: 80px;
     background-color: #ffffff; display: flex; align-items: center;
-    justify-content: space-between; padding: 0 60px; z-index: 2000;
-    border-bottom: 1.5pt solid #000000; box-sizing: border-box;
+    justify-content: space-between; padding: 0 min(60px, 5%);
+    z-index: 2000; border-bottom: 1.5pt solid #000;
     overflow-x: auto; scrollbar-width: none;
 }
-#top-bar::-webkit-scrollbar { display: none; }
 .top-bar-item { 
-    font-size: clamp(18px, 2.5vw, 32px); cursor: pointer; 
-    white-space: nowrap; flex-shrink: 0; transition: color 0.3s;
+    font-size: clamp(16px, 2.2vw, 32px); cursor: pointer; 
+    white-space: nowrap; margin-right: 25px; transition: color 0.3s;
 }
 .top-bar-item.active-b { color: blue !important; }
 .top-bar-item.active-other { color: #A020F0 !important; }
 
-/* [기존] 메인 스트림 - 상단 라인 밀착(padding 12px) 및 행간 1.25 */
+/* --- 3. 메인 스트림 (투명도 로직 복구) --- */
 #stream-container {
-    display: flex; flex-wrap: wrap; justify-content: flex-start;
-    align-items: flex-start; column-gap: 50px; row-gap: clamp(80px, 10vh, 140px);
-    padding: 140px 60px 100px; box-sizing: border-box; width: 100%;
+    display: flex; flex-wrap: wrap; 
+    gap: clamp(30px, 6vw, 100px);
+    padding: 140px min(60px, 5%) 100px; width: 100%;
+    transition: opacity 0.4s ease;
 }
 .word-wrapper {
-    position: relative; border-top: 1.5pt solid #000000; padding-top: 12px;
-    cursor: pointer; transition: opacity 0.4s ease; z-index: 1;
+    position: relative; border-top: 1.5pt solid #000; padding-top: 12px;
+    cursor: pointer; z-index: 1; flex: 0 1 auto; min-width: 0;
+    transition: opacity 0.4s ease, border-color 0.4s ease;
 }
 .word-wrapper::after {
     content: ""; position: absolute; top: -1.5pt; left: 100%;
-    width: 100vw; height: 1.5pt; background-color: #000000;
+    width: 200vw; height: 1.5pt; background-color: #000;
 }
-.floating-text { line-height: 1.25; letter-spacing: -0.04em; word-break: keep-all; }
+.floating-text { 
+    line-height: 1.1; letter-spacing: -0.04em; 
+    word-break: keep-all; overflow-wrap: anywhere;
+    transition: color 0.4s ease;
+}
 
-/* [기존] 필터링 색상 및 투명도 로직 */
+/* [복구] 배너 필터 클릭 시: 하이라이트 안 된 것들 투명하게 */
+#stream-container.filtered .word-wrapper:not(.highlight) { 
+    opacity: 0.1 !important; 
+    pointer-events: none; 
+}
+
+/* [수정] 특정 단어 클릭 시: 클릭한 단어는 50% 투명도, 나머지는 10% 투명도 */
+#stream-container.dimmed .word-wrapper { 
+    opacity: 0.1; 
+    pointer-events: none; 
+}
+
+#stream-container.dimmed .word-wrapper.selected { 
+    opacity: 0.5 !important; /* 클릭한 텍스트 투명도를 50%로 설정 */
+    pointer-events: auto; 
+    z-index: 1001; 
+}
+
+/* 하이라이트 색상 */
 .word-wrapper.highlight { border-top-color: #A020F0 !important; }
 .word-wrapper.highlight .floating-text { color: #A020F0 !important; }
 .word-wrapper.highlight::after { background-color: #A020F0 !important; }
@@ -47,60 +70,40 @@ body.stop-scroll { overflow: hidden !important; }
 .word-wrapper.highlight-blue .floating-text { color: blue !important; }
 .word-wrapper.highlight-blue::after { background-color: blue !important; }
 
-#stream-container.filtered .word-wrapper:not(.highlight) { opacity: 0.1; pointer-events: none; }
-#stream-container.dimmed .word-wrapper { opacity: 0.1; pointer-events: none; }
-#stream-container.dimmed .word-wrapper.selected { opacity: 0.5 !important; pointer-events: auto; z-index: 1001; }
-
-/* --- [신규/수정] 핑크 아이템 및 회전 그래픽 --- */
-.side-item-pink {
-    font-size: 15px; font-weight: 800; color: #FF007F;
-    border-top: 1.5pt solid #FF007F; padding-top: 12px;
-    cursor: pointer; display: flex; align-items: flex-start;
-    justify-content: space-between; width: 100%; position: relative;
-}
-.side-icon-graphic {
-    display: inline-flex; flex-direction: column; justify-content: space-between;
-    width: 20px; height: 14px; margin-top: 2px;
-    cursor: pointer; transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-origin: center; flex-shrink: 0;
-}
-/* 클릭 시 90도 고정 클래스 */
-.side-icon-graphic.active-rotate { transform: rotate(90deg); }
-.side-icon-graphic span { width: 100%; height: 1.5pt; background-color: #FF007F; }
-
-/* [신규] 하단 거대 텍스트 오버레이 (50% 높이 및 스크롤) */
+/* --- 4. 하단 거대 텍스트 창 (50% 고정) --- */
 #full-screen-overlay {
-    position: fixed; bottom: 0; left: 0; width: 100%; height: 50vh;
-    background-color: #ffffff; z-index: 3000; padding: 40px 60px;
-    box-sizing: border-box; border-top: 2pt solid #000000;
-    display: none; flex-direction: column; align-items: center;
-    overflow-y: auto; scrollbar-width: none;
+    position: fixed; bottom: 0; left: 0; width: 100%;
+    height: 50vh; background-color: #ffffff; z-index: 3000; 
+    border-top: 2pt solid #000000; display: none; flex-direction: column;
 }
-#full-screen-overlay::-webkit-scrollbar { display: none; }
-#big-text-display {
-    font-size: clamp(30px, 8vw, 120px); font-weight: 900;
-    line-height: 1.2; letter-spacing: -0.05em; color: #000000;
-    text-align: center; width: 100%; word-break: keep-all; padding-bottom: 60px;
+#resizer-handle {
+    width: 100%; height: 15px; background-color: #ffffff; 
+    border-bottom: 1px solid #000; display: flex; justify-content: center; align-items: center;
 }
+#resizer-handle::after { content: ""; width: 40px; height: 2px; background: #000; }
+#overlay-content { width: 100%; flex-grow: 1; overflow-y: auto; padding: 40px min(60px, 8%); }
+#big-text-display { font-size: clamp(24px, 5vw, 120px); font-weight: 900; line-height: 1.15; text-align: center; }
 
-/* --- [기존] 상세 노드 및 사이드 패널 레이아웃 --- */
-#side-panel { position: fixed; top: 120px; z-index: 1005; display: flex; pointer-events: none; gap: 30px; }
-.side-column-main { display: flex; flex-direction: column; gap: 30px; width: clamp(200px, 25vw, 300px); pointer-events: auto; }
-.side-column-sub { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 12px 18px; flex-grow: 1; max-width: 550px; border-top: 1.5pt solid red; pointer-events: auto; padding-top: 15px; }
-.side-item-red { font-size: 13px; font-weight: 800; color: red; cursor: pointer; }
-
-.node-container { 
-    position: fixed; top: 120px; display: flex; flex-direction: column; 
-    gap: 60px; z-index: 1002; width: 450px; max-height: 80vh; 
-    overflow-y: auto; scrollbar-width: none; 
-}
-.node-text { border-top: 1.5pt solid #000000; padding-top: 20px; font-size: 18px; line-height: 1.6; font-weight: 800; }
-
-/* 키워드 (형광 초록) */
+/* --- 5. 상세 패널 --- */
+.node-container { position: fixed; z-index: 1002; width: min(450px, 90vw); max-height: 60vh; overflow-y: auto; }
+.node-text { border-top: 1.5pt solid #000; padding-top: 20px; font-size: 18px; line-height: 1.6; margin-bottom: 40px; }
 .keyword-link { cursor: pointer; color: inherit; }
 .keyword-link:hover .inner-text, .keyword-link.active-keyword .inner-text { color: #00ff00 !important; }
 
+#side-panel { position: fixed; z-index: 1005; display: flex; gap: 20px; pointer-events: none; }
+.side-column-main { width: min(300px, 60vw); pointer-events: auto; display: flex; flex-direction: column; gap: 20px; }
+.side-column-sub { width: min(500px, 80vw); pointer-events: auto; border-top: 1.5pt solid red; padding-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; }
+
+.side-item-pink { color: #FF007F; border-top: 1.5pt solid #FF007F; padding-top: 10px; font-size: 15px; display: flex; justify-content: space-between; cursor: pointer; }
+.side-icon-graphic { width: 20px; height: 14px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.3s; }
+.side-icon-graphic.active-rotate { transform: rotate(90deg); }
+.side-icon-graphic span { height: 2px; background: #FF007F; width: 100%; }
+
+.side-item-red { color: red; font-size: 13px; cursor: pointer; line-height: 1.5; margin: 5px 0; }
+
 @media (max-width: 768px) {
-    #top-bar { padding: 0 5%; gap: 30px; }
-    #stream-container { padding: 120px 5% 100px; }
+    #top-bar { height: 60px; padding: 0 5%; }
+    #stream-container { padding-top: 100px; gap: 30px; }
+    .node-container { left: 5% !important; width: 90%; top: 90px !important; }
+    #side-panel { flex-direction: column !important; bottom: 40px; left: 5% !important; top: auto !important; }
 }
