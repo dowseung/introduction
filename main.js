@@ -3,6 +3,8 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8
 let wordToSourceMap = {}; 
 let uniqueWordsList = [];
 let wordCounts = {};
+let currentSelectedWrapper = null;
+let scrollPos = 0; // 스크롤 위치 저장용
 
 async function init() {
     try {
@@ -52,11 +54,11 @@ function renderBatch() {
         item.className = 'floating-text';
         item.innerText = word;
 
-        // [수정] 기본 화면 텍스트 크기 전반적으로 키움
-        // 최소 20px, 가중치 증가
-        const fontSize = Math.min(Math.max((winWidth * 0.018) + (wordCounts[word] - 1) * 10, 20), 100);
+        const fontSize = Math.min(Math.max((winWidth * 0.02) + (wordCounts[word] - 1) * 10, 28), 110);
         item.style.fontSize = `${fontSize}px`;
-        item.style.marginTop = `-${fontSize * 0.18}px`; // 상단 시각 보정
+        const marginTop = 25 + (fontSize * -0.28);
+        item.style.marginTop = `${marginTop}px`; 
+        item.style.paddingBottom = `${fontSize * 0.15}px`;
 
         wrapper.onclick = (e) => {
             e.stopPropagation();
@@ -69,58 +71,82 @@ function renderBatch() {
 }
 
 function toggleInteraction(target, word) {
-    const container = document.getElementById('stream-container');
-    const body = document.body;
-    const winWidth = window.innerWidth;
-
-    document.querySelectorAll('.node-container').forEach(n => n.remove());
-    body.classList.remove('stop-scroll');
-
     if (target.classList.contains('selected')) {
-        target.classList.remove('selected');
-        container.classList.remove('dimmed');
+        closeDetail();
         return;
     }
 
+    // 초기화
+    document.querySelectorAll('.node-container').forEach(n => n.remove());
     document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('selected'));
-    target.classList.add('selected');
-    container.classList.add('dimmed');
-    body.classList.add('stop-scroll'); 
 
-    const rect = target.getBoundingClientRect();
-    const sources = Array.from(wordToSourceMap[word]);
+    // [핵심] 스크롤 위치 고정
+    scrollPos = window.pageYOffset;
+    document.body.style.top = `-${scrollPos}px`;
+    document.body.classList.add('stop-scroll');
+
+    target.classList.add('selected');
+    currentSelectedWrapper = target;
+    document.getElementById('stream-container').classList.add('dimmed');
+
     const nodeGroup = document.createElement('div');
     nodeGroup.className = 'node-container';
-    
+    nodeGroup.id = 'active-panel';
     nodeGroup.onclick = (e) => e.stopPropagation();
     document.body.appendChild(nodeGroup);
 
-    const boxWidth = Math.min(500, winWidth * 0.85);
-    let posX;
-
-    if (rect.left + rect.width / 2 < winWidth / 2) {
-        posX = Math.min(winWidth - boxWidth - 60, rect.left + rect.width + 40);
-    } else {
-        posX = Math.max(60, rect.left - boxWidth - 40);
-    }
-
-    if (winWidth < 768) posX = 30;
-    nodeGroup.style.left = `${posX}px`;
-
+    const sources = Array.from(wordToSourceMap[word]);
     sources.forEach((text, i) => {
         const node = document.createElement('div');
         node.className = 'node-text';
         node.innerText = text;
-        node.style.animationDelay = `${i * 0.08}s`;
         nodeGroup.appendChild(node);
     });
+
+    updatePanelPosition();
 }
 
-document.addEventListener('click', () => {
-    document.body.classList.remove('stop-scroll');
+function updatePanelPosition() {
+    const panel = document.getElementById('active-panel');
+    if (!panel || !currentSelectedWrapper) return;
+
+    const winWidth = window.innerWidth;
+    const rect = currentSelectedWrapper.getBoundingClientRect();
+    const boxWidth = Math.min(500, winWidth * 0.7);
+    
+    let posX;
+    if (rect.left + rect.width / 2 < winWidth / 2) {
+        posX = rect.left + rect.width + 40;
+        if (posX + boxWidth > winWidth - 40) posX = winWidth - boxWidth - 40;
+    } else {
+        posX = rect.left - boxWidth - 40;
+        if (posX < 60) posX = 60;
+    }
+
+    panel.style.left = `${Math.max(20, posX)}px`;
+    panel.style.maxWidth = `${winWidth * 0.8}px`;
+}
+
+function closeDetail() {
+    const body = document.body;
+    if (body.classList.contains('stop-scroll')) {
+        body.classList.remove('stop-scroll');
+        body.style.top = '';
+        window.scrollTo(0, scrollPos); // 원래 위치로 복구
+    }
+    
     document.getElementById('stream-container').classList.remove('dimmed');
     document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('selected'));
     document.querySelectorAll('.node-container').forEach(n => n.remove());
+    currentSelectedWrapper = null;
+}
+
+document.addEventListener('click', closeDetail);
+
+window.addEventListener('resize', () => {
+    if (currentSelectedWrapper) {
+        updatePanelPosition();
+    }
 });
 
 window.addEventListener('scroll', () => {
