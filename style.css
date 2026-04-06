@@ -33,7 +33,6 @@ body.stop-scroll { overflow: hidden !important; }
     box-sizing: border-box; width: 100%;
 }
 
-/* 필터링 및 투명도 설정 */
 #stream-container.filtered .word-wrapper:not(.highlight) { opacity: 0.1; pointer-events: none; }
 #stream-container.dimmed .word-wrapper { opacity: 0.1; pointer-events: none; }
 #stream-container.dimmed .word-wrapper.selected { 
@@ -45,7 +44,6 @@ body.stop-scroll { overflow: hidden !important; }
 .word-wrapper {
     position: relative; display: inline-block; vertical-align: top;
     border-top: 1.5pt solid #000000; 
-    /* ★ 라인과 텍스트 사이의 간격 조정 (기존 5px -> 12px로 살짝 확대) */
     padding-top: 12px; 
     cursor: pointer; 
     transition: opacity 0.4s ease, border-color 0.3s ease;
@@ -73,7 +71,6 @@ body.stop-scroll { overflow: hidden !important; }
     width: 100%; 
 }
 
-/* 형광 초록 효과 */
 .keyword-link { 
     position: relative; display: inline-block; cursor: pointer; 
     vertical-align: top; color: inherit; 
@@ -82,7 +79,6 @@ body.stop-scroll { overflow: hidden !important; }
 .keyword-link:hover .inner-text,
 .keyword-link.active-keyword .inner-text { color: #00ff00 !important; }
 
-/* 패널 설정 */
 .node-container { 
     position: fixed; top: 120px; display: flex; flex-direction: column; 
     gap: clamp(40px, 8vh, 80px); z-index: 1002; pointer-events: auto; 
@@ -108,7 +104,6 @@ body.stop-scroll { overflow: hidden !important; }
 .side-item-pink { font-size: 15px; font-weight: 800; color: #FF007F; border-top: 1.5pt solid #FF007F; padding-top: 12px; cursor: pointer; }
 .side-item-red { font-size: 13px; font-weight: 800; color: red; white-space: nowrap; }
 
-/* 모바일 전용 */
 @media (max-width: 768px) {
     #top-bar { padding: 0 5%; }
     #stream-container { padding: 120px 5% 100px; }

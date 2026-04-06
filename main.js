@@ -169,6 +169,7 @@ function showSidePanel(word) {
         const isAlreadyActive = el.classList.contains('active-pink');
         document.querySelectorAll('.side-item-pink').forEach(item => item.classList.remove('active-pink'));
         subColumn.innerHTML = ''; subColumn.style.display = 'none';
+        
         if (!isAlreadyActive) {
             el.classList.add('active-pink');
             const rowIndices = wordToRowIndicesMap[targetWord];
@@ -176,13 +177,22 @@ function showSidePanel(word) {
             rowIndices.forEach(idx => {
                 const row = allRows[idx];
                 if (row[1] === clickedPinkItem) {
-                    for (let i = 1; i <= 12; i++) { if (row[i]) row[i].toString().split('\n').forEach(w => { if(w.trim()) relatedWords.add(w.trim()); }); }
+                    for (let i = 1; i <= 12; i++) { 
+                        if (row[i]) row[i].toString().split('\n').forEach(w => { 
+                            if(w.trim()) relatedWords.add(w.trim()); 
+                        }); 
+                    }
                 }
             });
+
             if (relatedWords.size > 0) {
                 subColumn.style.display = 'flex';
-                relatedWords.forEach(w => {
-                    const item = document.createElement('div'); item.className = 'side-item-red'; item.innerText = w;
+                // ★ 빨간색 텍스트 랜덤 순서 나열 로직 추가
+                const randomRelatedWords = Array.from(relatedWords).sort(() => Math.random() - 0.5);
+                randomRelatedWords.forEach(w => {
+                    const item = document.createElement('div'); 
+                    item.className = 'side-item-red'; 
+                    item.innerText = w;
                     subColumn.appendChild(item);
                 });
             }
