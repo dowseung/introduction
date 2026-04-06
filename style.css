@@ -7,20 +7,24 @@ body, html {
 
 body.stop-scroll { overflow: hidden !important; }
 
-/* 1. 상단 바 */
+/* 1. 상단 바 - 가로 줄바꿈 방지 및 스크롤 */
 #top-bar {
     position: fixed; top: 0; left: 0; width: 100%;
     height: 80px; background-color: #ffffff;
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 60px; z-index: 2000; border-bottom: 1.5pt solid #000000;
-    box-sizing: border-box;
+    box-sizing: border-box; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
 }
+#top-bar::-webkit-scrollbar { display: none; }
 
-.top-bar-item { font-size: clamp(18px, 2.5vw, 32px); cursor: pointer; }
+.top-bar-item { 
+    font-size: clamp(18px, 2.5vw, 32px); cursor: pointer; 
+    transition: color 0.3s ease; white-space: nowrap; flex-shrink: 0;
+}
 .top-bar-item.active-b { color: blue !important; }
 .top-bar-item.active-other { color: #A020F0 !important; }
 
-/* 2. 메인 그리드 및 시각 보정 (핵심) */
+/* 2. 메인 그리드 및 시각 보정 */
 #stream-container {
     display: flex; flex-wrap: wrap;
     justify-content: flex-start; align-items: flex-start; 
@@ -31,20 +35,17 @@ body.stop-scroll { overflow: hidden !important; }
 
 .word-wrapper {
     position: relative; display: inline-block; vertical-align: top;
-    border-top: 1.5pt solid #000000; /* 상단 그리드 라인 */
-    padding-top: 12px; /* 텍스트를 라인에 밀착시키는 시각 보정 */
-    cursor: pointer; 
-    transition: opacity 0.4s ease, border-color 0.3s ease;
+    border-top: 1.5pt solid #000000; padding-top: 12px;
+    cursor: pointer; transition: opacity 0.4s ease, border-color 0.3s ease;
     max-width: calc(100vw - 120px); box-sizing: border-box; z-index: 1;
 }
 
-/* 가로선 연장 */
 .word-wrapper::after {
     content: ""; position: absolute; top: -1.5pt; left: 100%;
     width: 100vw; height: 1.5pt; background-color: #000000;
 }
 
-/* 필터링 색상 */
+/* 필터링 색상 유지 */
 .word-wrapper.highlight { border-top-color: #A020F0 !important; }
 .word-wrapper.highlight .floating-text { color: #A020F0 !important; }
 .word-wrapper.highlight::after { background-color: #A020F0 !important; }
@@ -52,27 +53,23 @@ body.stop-scroll { overflow: hidden !important; }
 .word-wrapper.highlight-blue .floating-text { color: blue !important; }
 .word-wrapper.highlight-blue::after { background-color: blue !important; }
 
-/* 메인 텍스트 가독성 (행간 1.25) */
 .floating-text { 
-    line-height: 1.25; 
-    letter-spacing: -0.04em; 
-    word-break: keep-all; 
-    overflow-wrap: break-word;
-    display: block; width: 100%; 
+    line-height: 1.25; letter-spacing: -0.04em; 
+    word-break: keep-all; overflow-wrap: break-word; display: block; width: 100%; 
 }
 
-/* 3. 투명도 로직 */
+/* 투명도 로직 */
 #stream-container.filtered .word-wrapper:not(.highlight) { opacity: 0.1; pointer-events: none; }
 #stream-container.dimmed .word-wrapper { opacity: 0.1; pointer-events: none; }
 #stream-container.dimmed .word-wrapper.selected { opacity: 0.5 !important; pointer-events: auto; z-index: 1001; }
 
-/* 4. 형광 초록 효과 */
+/* 형광 초록 효과 */
 .keyword-link { position: relative; display: inline-block; cursor: pointer; vertical-align: top; color: inherit; }
 .inner-text { position: relative; display: inline-block; z-index: 2; transition: color 0.2s ease; }
 .keyword-link:hover .inner-text,
 .keyword-link.active-keyword .inner-text { color: #00ff00 !important; }
 
-/* 5. 사이드 패널 및 빨간 텍스트 줄바꿈 */
+/* 사이드 패널 (빨간 텍스트 줄바꿈) */
 #side-panel { 
     position: fixed; top: 120px; z-index: 1005; display: flex; 
     pointer-events: none; max-width: calc(100vw - 120px); gap: 30px;
@@ -86,12 +83,10 @@ body.stop-scroll { overflow: hidden !important; }
 .side-item-pink { font-size: 15px; font-weight: 800; color: #FF007F; border-top: 1.5pt solid #FF007F; padding-top: 12px; cursor: pointer; }
 .side-item-red { 
     font-size: 13px; font-weight: 800; color: red; 
-    white-space: normal; word-break: keep-all; 
-    cursor: pointer; transition: text-decoration 0.2s ease;
+    white-space: normal; word-break: keep-all; cursor: pointer; 
 }
-.side-item-red:hover { text-decoration: underline; }
 
-/* 6. 상세 노드 */
+/* 상세 노드 */
 .node-container { 
     position: fixed; top: 120px; display: flex; flex-direction: column; 
     gap: clamp(40px, 8vh, 80px); z-index: 1002; pointer-events: auto; 
@@ -104,6 +99,6 @@ body.stop-scroll { overflow: hidden !important; }
 }
 
 @media (max-width: 768px) {
-    #side-panel { width: 90%; flex-direction: column !important; top: 100px !important; left: 5% !important; }
-    .side-column-sub { max-width: 100%; }
+    #top-bar { padding: 0 5%; justify-content: flex-start; gap: 30px; }
+    .top-bar-item { font-size: 18px; padding: 0 5px; }
 }

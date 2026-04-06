@@ -2,7 +2,6 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8
 
 let allRows = [], wordToSourceMap = {}, wordToBColumnMap = {}, wordToRowIndicesMap = {}, wordToColumnMap = {}, uniqueWordsList = [], wordCounts = {}, currentSelectedWrapper = null, currentFilterCol = null;
 
-// 스크롤 방지 로직
 function preventDefaultScroll(e) {
     if (!e.target.closest('.node-container') && !e.target.closest('.side-column-sub') && !e.target.closest('.side-column-main')) { e.preventDefault(); }
 }
@@ -32,15 +31,23 @@ function renderTopBar(header) {
             const item = document.createElement('div');
             item.className = 'top-bar-item';
             item.innerText = header[i];
-            // 상단 바 아이템 클릭 시 배경 클릭 이벤트 방해하지 않도록 stopPropagation
-            item.onclick = (e) => { e.stopPropagation(); toggleColumnFilter(i, item); };
+            item.onclick = (e) => { 
+                e.stopPropagation(); 
+                // 필터 클릭 시 상세보기가 열려있다면 상세만 먼저 닫음
+                if (currentSelectedWrapper) closeDetailOnly();
+                toggleColumnFilter(i, item); 
+            };
             topBar.appendChild(item);
         }
     }
 }
 
 function toggleColumnFilter(colIndex, element) {
-    if (currentFilterCol === colIndex) { resetAll(); return; }
+    // 이미 같은 필터가 클릭되어 있다면 필터 초기화
+    if (currentFilterCol === colIndex) {
+        clearFilterState();
+        return;
+    }
     currentFilterCol = colIndex;
     document.querySelectorAll('.top-bar-item').forEach(it => it.classList.remove('active-b', 'active-other'));
     colIndex === 1 ? element.classList.add('active-b') : element.classList.add('active-other');
@@ -53,6 +60,14 @@ function toggleColumnFilter(colIndex, element) {
             if (colIndex === 1) wrapper.classList.add('highlight-blue');
         }
     });
+}
+
+// 순수하게 상단 필터만 초기화하는 함수
+function clearFilterState() {
+    currentFilterCol = null;
+    document.getElementById('stream-container').classList.remove('filtered');
+    document.querySelectorAll('.top-bar-item').forEach(it => it.classList.remove('active-b', 'active-other'));
+    document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('highlight', 'highlight-blue'));
 }
 
 function processData(rows) {
@@ -99,7 +114,11 @@ function renderBatch() {
 }
 
 function toggleInteraction(target, word) {
-    if (target.classList.contains('selected')) { resetAll(); return; }
+    // 상세 보기가 열려 있는 상태에서 해당 텍스트를 다시 클릭하면 상세만 닫힘 (필터는 유지)
+    if (target.classList.contains('selected')) { 
+        closeDetailOnly(); 
+        return; 
+    }
     closeDetailOnly();
     target.classList.add('selected');
     currentSelectedWrapper = target;
@@ -150,7 +169,7 @@ function showSidePanel(word) {
     const existing = document.getElementById('side-panel'); if (existing) existing.remove();
     const sidePanel = document.createElement('div');
     sidePanel.id = 'side-panel';
-    sidePanel.onclick = (e) => e.stopPropagation(); // 패널 클릭 시 배경 클릭 전파 방지
+    sidePanel.onclick = (e) => e.stopPropagation();
     const mainColumn = document.createElement('div'); mainColumn.className = 'side-column-main';
     const subColumn = document.createElement('div'); subColumn.className = 'side-column-sub';
     subColumn.style.display = 'none';
@@ -229,6 +248,7 @@ function updatePanelPosition() {
     }
 }
 
+// 상세창만 닫는 함수 (필터 상태는 건드리지 않음)
 function closeDetailOnly() {
     document.body.classList.remove('stop-scroll');
     document.getElementById('stream-container').classList.remove('dimmed');
@@ -240,17 +260,18 @@ function closeDetailOnly() {
     window.removeEventListener('touchmove', preventDefaultScroll);
 }
 
+// 배경 클릭 시 실행되는 통합 초기화 함수
 function resetAll() {
-    closeDetailOnly();
-    currentFilterCol = null;
-    document.getElementById('stream-container').classList.remove('filtered');
-    document.querySelectorAll('.top-bar-item').forEach(it => it.classList.remove('active-b', 'active-other'));
-    document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('highlight', 'highlight-blue'));
+    // 1. 상세 보기가 열려 있다면 상세 보기만 닫고 종료 (필터 유지)
+    if (currentSelectedWrapper) {
+        closeDetailOnly();
+        return;
+    }
+    // 2. 상세 보기가 없는 상태에서 클릭하면 상단 필터까지 모두 초기화
+    clearFilterState();
 }
 
-// 배경 클릭 시 전체 초기화
 document.addEventListener('click', resetAll);
-
 window.addEventListener('resize', () => { if (currentSelectedWrapper) updatePanelPosition(); });
 window.addEventListener('scroll', () => { if (!document.body.classList.contains('stop-scroll') && (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800)) renderBatch(); });
 init();
