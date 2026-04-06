@@ -17,7 +17,7 @@ async function init() {
                 allRows = results.data.slice(1);
                 processData(allRows); 
                 renderTopBar(headerRow); 
-                document.fonts.ready.then(() => { renderBatch(); renderBatch(); });
+                renderBatch();
             }
         });
     } catch (err) { console.error("로드 실패", err); }
@@ -25,6 +25,7 @@ async function init() {
 
 function renderTopBar(header) {
     const topBar = document.getElementById('top-bar');
+    topBar.innerHTML = '';
     for (let i = 1; i <= 12; i++) {
         if (header[i]) {
             const item = document.createElement('div');
@@ -80,17 +81,16 @@ function processData(rows) {
 
 function renderBatch() {
     const container = document.getElementById('stream-container');
+    container.innerHTML = '';
     const winWidth = window.innerWidth;
     [...uniqueWordsList].sort(() => Math.random() - 0.5).forEach(word => {
         const wrapper = document.createElement('div');
         wrapper.className = 'word-wrapper';
         const item = document.createElement('div');
         item.className = 'floating-text'; item.innerText = word;
-        const fontSize = Math.min(Math.max((winWidth * 0.02) + (wordCounts[word] - 1) * 10, 28), 110);
+        const baseSize = winWidth * 0.015;
+        const fontSize = Math.min(Math.max(baseSize + (wordCounts[word] - 1) * 8, 24), 110);
         item.style.fontSize = `${fontSize}px`;
-        const correction = /^[A-Za-z0-9]/.test(word) ? 0.315 : 0.295;
-        item.style.marginTop = `${25 - (fontSize * correction)}px`; 
-        item.style.paddingBottom = `${fontSize * 0.12}px`;
         wrapper.onclick = (e) => { e.stopPropagation(); toggleInteraction(wrapper, word); };
         wrapper.append(item); container.append(wrapper);
     });
@@ -108,7 +108,6 @@ function toggleInteraction(target, word) {
 
     const nodeGroup = document.createElement('div');
     nodeGroup.className = 'node-container'; nodeGroup.id = 'active-panel';
-    // 패널 내부 클릭 시 초기화되지 않도록
     nodeGroup.onclick = (e) => e.stopPropagation(); 
     Array.from(wordToSourceMap[word]).forEach((text) => {
         const node = document.createElement('div');
@@ -127,10 +126,7 @@ function highlightKeywords(text) {
         if (word.length < 1) return;
         const regex = new RegExp(`(?<!<[^>]*)${escapeRegExp(word)}(?![^<]*>)`, 'g');
         highlightedText = highlightedText.replace(regex, 
-            `<span class="keyword-link" 
-                   onclick="handleKeywordClick(event, this, '${word.replace(/'/g, "\\'")}')">
-                <span class="inner-text">${word}</span>
-            </span>`
+            `<span class="keyword-link" onclick="handleKeywordClick(event, this, '${word.replace(/'/g, "\\'")}')"><span class="inner-text">${word}</span></span>`
         );
     });
     return highlightedText;
@@ -139,11 +135,7 @@ function highlightKeywords(text) {
 function handleKeywordClick(event, el, word) {
     event.stopPropagation();
     const isActive = el.classList.contains('active-keyword');
-    
-    document.querySelectorAll('.keyword-link.active-keyword').forEach(link => {
-        link.classList.remove('active-keyword');
-    });
-
+    document.querySelectorAll('.keyword-link.active-keyword').forEach(link => link.classList.remove('active-keyword'));
     if (isActive) {
         const side = document.getElementById('side-panel'); if (side) side.remove();
     } else {
@@ -161,13 +153,15 @@ function showSidePanel(word) {
     const subColumn = document.createElement('div'); subColumn.className = 'side-column-sub';
     subColumn.style.display = 'none';
 
+    const winWidth = window.innerWidth;
     const activePanel = document.getElementById('active-panel');
-    if (activePanel) {
+    
+    if (activePanel && winWidth > 768) {
         const rect = activePanel.getBoundingClientRect();
-        if ((rect.left + rect.width / 2) < window.innerWidth / 2) {
-            sidePanel.style.right = '40px'; sidePanel.style.left = 'auto'; sidePanel.style.flexDirection = 'row-reverse';
+        if ((rect.left + rect.width / 2) < winWidth / 2) {
+            sidePanel.style.right = '60px'; sidePanel.style.left = 'auto'; sidePanel.style.flexDirection = 'row-reverse';
         } else {
-            sidePanel.style.left = '40px'; sidePanel.style.right = 'auto'; sidePanel.style.flexDirection = 'row';
+            sidePanel.style.left = '60px'; sidePanel.style.right = 'auto'; sidePanel.style.flexDirection = 'row';
         }
     }
 
@@ -175,7 +169,6 @@ function showSidePanel(word) {
         const isAlreadyActive = el.classList.contains('active-pink');
         document.querySelectorAll('.side-item-pink').forEach(item => item.classList.remove('active-pink'));
         subColumn.innerHTML = ''; subColumn.style.display = 'none';
-
         if (!isAlreadyActive) {
             el.classList.add('active-pink');
             const rowIndices = wordToRowIndicesMap[targetWord];
@@ -183,9 +176,7 @@ function showSidePanel(word) {
             rowIndices.forEach(idx => {
                 const row = allRows[idx];
                 if (row[1] === clickedPinkItem) {
-                    for (let i = 1; i <= 12; i++) {
-                        if (row[i]) row[i].toString().split('\n').forEach(w => { if(w.trim()) relatedWords.add(w.trim()); });
-                    }
+                    for (let i = 1; i <= 12; i++) { if (row[i]) row[i].toString().split('\n').forEach(w => { if(w.trim()) relatedWords.add(w.trim()); }); }
                 }
             });
             if (relatedWords.size > 0) {
@@ -214,9 +205,15 @@ function updatePanelPosition() {
     if (!panel || !currentSelectedWrapper) return;
     const rect = currentSelectedWrapper.getBoundingClientRect();
     const winWidth = window.innerWidth;
-    const boxWidth = Math.min(500, winWidth * 0.7);
-    let posX = (rect.left + rect.width / 2 < winWidth / 2) ? rect.left + rect.width + 40 : rect.left - boxWidth - 40;
-    panel.style.left = `${Math.max(20, Math.min(posX, winWidth - boxWidth - 40))}px`;
+    const padding = winWidth > 768 ? 60 : winWidth * 0.05;
+    const boxWidth = Math.min(500, winWidth - (padding * 2));
+    
+    if (winWidth > 768) {
+        let posX = (rect.left + rect.width / 2 < winWidth / 2) ? rect.left + rect.width + 40 : rect.left - boxWidth - 40;
+        panel.style.left = `${Math.max(padding, Math.min(posX, winWidth - boxWidth - padding))}px`;
+    } else {
+        panel.style.left = `${padding}px`;
+    }
 }
 
 function closeDetailOnly() {
@@ -230,7 +227,6 @@ function closeDetailOnly() {
     window.removeEventListener('touchmove', preventDefaultScroll);
 }
 
-// 배경(빈 공간) 클릭 시 모든 필터 및 패널 초기화
 function resetAll() {
     closeDetailOnly();
     currentFilterCol = null;
@@ -239,9 +235,7 @@ function resetAll() {
     document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('highlight', 'highlight-blue'));
 }
 
-// 문서 전체에 클릭 이벤트 등록 (stopPropagation이 적용되지 않은 빈 공간 클릭 시 resetAll 실행)
 document.addEventListener('click', resetAll);
-
 window.addEventListener('resize', () => { if (currentSelectedWrapper) updatePanelPosition(); });
 window.addEventListener('scroll', () => { if (!document.body.classList.contains('stop-scroll') && (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800)) renderBatch(); });
 init();
