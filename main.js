@@ -4,7 +4,13 @@ let wordToSourceMap = {};
 let uniqueWordsList = [];
 let wordCounts = {};
 let currentSelectedWrapper = null;
-let scrollPos = 0; // 스크롤 위치 저장용
+
+// 배경 스크롤 물리 차단 함수
+function preventDefaultScroll(e) {
+    if (!e.target.closest('.node-container')) {
+        e.preventDefault();
+    }
+}
 
 async function init() {
     try {
@@ -39,7 +45,23 @@ function processData(rows) {
             });
         });
     });
-    uniqueWordsList = Object.keys(wordCounts);
+    // 긴 단어부터 치환하기 위해 길이순 정렬
+    uniqueWordsList = Object.keys(wordCounts).sort((a, b) => b.length - a.length);
+}
+
+// 텍스트 내 키워드를 찾아 span 태그로 감싸는 함수
+function highlightKeywords(text) {
+    let highlightedText = text;
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    uniqueWordsList.forEach(word => {
+        if (word.length < 1) return;
+        const escapedWord = escapeRegExp(word);
+        // 이미 태그가 씌워진 단어는 건너뛰는 정규식
+        const regex = new RegExp(`(?<!<[^>]*)${escapedWord}(?![^<]*>)`, 'g');
+        highlightedText = highlightedText.replace(regex, `<span class="keyword-link">${word}</span>`);
+    });
+    return highlightedText;
 }
 
 function renderBatch() {
@@ -56,9 +78,14 @@ function renderBatch() {
 
         const fontSize = Math.min(Math.max((winWidth * 0.02) + (wordCounts[word] - 1) * 10, 28), 110);
         item.style.fontSize = `${fontSize}px`;
-        const marginTop = 25 + (fontSize * -0.28);
+        
+        // 언어별 상단 정렬 보정
+        const isEnglishOrNumber = /^[A-Za-z0-9]/.test(word);
+        const correctionFactor = isEnglishOrNumber ? 0.315 : 0.295;
+        
+        const marginTop = 25 - (fontSize * correctionFactor); 
         item.style.marginTop = `${marginTop}px`; 
-        item.style.paddingBottom = `${fontSize * 0.15}px`;
+        item.style.paddingBottom = `${fontSize * 0.12}px`;
 
         wrapper.onclick = (e) => {
             e.stopPropagation();
@@ -76,14 +103,15 @@ function toggleInteraction(target, word) {
         return;
     }
 
-    // 초기화
     document.querySelectorAll('.node-container').forEach(n => n.remove());
     document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('selected'));
 
-    // [핵심] 스크롤 위치 고정
-    scrollPos = window.pageYOffset;
-    document.body.style.top = `-${scrollPos}px`;
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.documentElement.style.setProperty('--scrollbar-width', `${scrollBarWidth}px`);
     document.body.classList.add('stop-scroll');
+
+    window.addEventListener('wheel', preventDefaultScroll, { passive: false });
+    window.addEventListener('touchmove', preventDefaultScroll, { passive: false });
 
     target.classList.add('selected');
     currentSelectedWrapper = target;
@@ -96,10 +124,11 @@ function toggleInteraction(target, word) {
     document.body.appendChild(nodeGroup);
 
     const sources = Array.from(wordToSourceMap[word]);
-    sources.forEach((text, i) => {
+    sources.forEach((text) => {
         const node = document.createElement('div');
         node.className = 'node-text';
-        node.innerText = text;
+        // 하이라이트 로직 적용 후 삽입
+        node.innerHTML = highlightKeywords(text);
         nodeGroup.appendChild(node);
     });
 
@@ -128,12 +157,9 @@ function updatePanelPosition() {
 }
 
 function closeDetail() {
-    const body = document.body;
-    if (body.classList.contains('stop-scroll')) {
-        body.classList.remove('stop-scroll');
-        body.style.top = '';
-        window.scrollTo(0, scrollPos); // 원래 위치로 복구
-    }
+    document.body.classList.remove('stop-scroll');
+    window.removeEventListener('wheel', preventDefaultScroll);
+    window.removeEventListener('touchmove', preventDefaultScroll);
     
     document.getElementById('stream-container').classList.remove('dimmed');
     document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('selected'));
@@ -144,9 +170,7 @@ function closeDetail() {
 document.addEventListener('click', closeDetail);
 
 window.addEventListener('resize', () => {
-    if (currentSelectedWrapper) {
-        updatePanelPosition();
-    }
+    if (currentSelectedWrapper) updatePanelPosition();
 });
 
 window.addEventListener('scroll', () => {
