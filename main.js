@@ -11,11 +11,11 @@ async function init() {
             header: false,
             complete: (results) => {
                 const rows = results.data.slice(1);
-                processAndRender(rows);
+                document.fonts.ready.then(() => processAndRender(rows));
             }
         });
     } catch (err) {
-        console.error("데이터 로드 실패", err);
+        console.error("로드 실패", err);
     }
 }
 
@@ -43,8 +43,8 @@ function processAndRender(rows) {
 
     const uniqueWords = Object.keys(wordCounts);
     
-    // 촘촘한 배치를 위해 컨테이너 높이 비율을 살짝 줄임 (밀도 증가)
-    container.style.height = `${Math.max(100, uniqueWords.length * 8)}vh`;
+    // 데이터 양에 따라 높이를 넉넉히 설정 (겹침 방지 공간 확보)
+    container.style.height = `${Math.max(100, uniqueWords.length * 7)}vh`;
     const containerWidth = container.offsetWidth;
     const containerHeight = container.offsetHeight;
 
@@ -55,10 +55,11 @@ function processAndRender(rows) {
         item.innerText = word;
 
         const isSmall = winWidth <= 768;
-        const step = isSmall ? 6 : 12; 
-        const baseSize = isSmall ? 15 : 20;
+        const step = isSmall ? 8 : 16; 
+        const baseSize = isSmall ? 18 : 24;
         item.style.fontSize = `${baseSize + (count - 1) * step}px`;
 
+        // 좌표 계산을 위해 임시 렌더링
         item.style.visibility = 'hidden';
         container.appendChild(item);
         
@@ -69,13 +70,24 @@ function processAndRender(rows) {
         let attempts = 0;
         let x = 0, y = 0;
 
-        // --- 배치 최적화: 시도 횟수를 대폭 늘려 좁은 틈을 찾음 ---
-        while (!foundPosition && attempts < 500) {
-            // 벽면 여백도 최소화 (5px)
-            x = Math.random() * (containerWidth - w - 10) + 5;
-            y = Math.random() * (containerHeight - h - 10) + 5;
+        // 1000번 시도하여 안전한 좌표 찾기
+        while (!foundPosition && attempts < 1000) {
+            // [중요] (전체 너비 - 글자 너비) 안에서만 x 좌표 생성
+            // 좌우 안전 여백 10px씩 확보
+            const maxX = containerWidth - w - 20;
+            const maxY = containerHeight - h - 20;
 
-            if (!checkCollision(x, y, w, h)) {
+            if (maxX > 0 && maxY > 0) {
+                x = Math.random() * maxX + 10;
+                y = Math.random() * maxY + 10;
+
+                if (!checkCollision(x, y, w, h)) {
+                    foundPosition = true;
+                }
+            } else {
+                // 글자가 화면보다 크면 그냥 맨 왼쪽에 배치 (CSS의 max-width가 해결)
+                x = 10;
+                y = Math.random() * (containerHeight - h - 20) + 10;
                 foundPosition = true;
             }
             attempts++;
@@ -93,8 +105,7 @@ function processAndRender(rows) {
 }
 
 function checkCollision(x, y, w, h) {
-    // --- 핵심 수정: 텍스트 간 물리적 간격을 2px로 축소 ---
-    const padding = 2; 
+    const padding = 0.5; 
     for (const rect of placedRects) {
         if (
             x < rect.x + rect.w + padding &&
@@ -108,7 +119,7 @@ function checkCollision(x, y, w, h) {
 
 window.addEventListener('resize', () => {
     clearTimeout(window.resizeTimer);
-    window.resizeTimer = setTimeout(init, 200);
+    window.resizeTimer = setTimeout(init, 250);
 });
 
 init();

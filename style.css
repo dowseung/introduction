@@ -4,7 +4,10 @@ body, html {
     width: 100%;
     overflow-x: hidden; 
     background-color: #ffffff; 
-    font-family: 'Pretendard', sans-serif;
+    
+    /* 폰트 우선순위 설정: 영문/숫자는 Helvetica, 한글은 Asap */
+    font-family: "Helvetica Neue", Helvetica, Arial, "Asap", sans-serif;
+    font-weight: 800; /* ExtraBold */
     color: #000000;
 }
 
@@ -13,21 +16,24 @@ body, html {
     width: 100vw;
     min-height: 100vh;
     box-sizing: border-box;
-    /* 상하 여백을 줄여 더 꽉 차 보이게 함 */
-    padding: 20px 0; 
+    padding: 10px 0;
 }
 
 .floating-text {
     position: absolute;
     display: inline-block;
-    line-height: 1.0; /* 줄 간격을 극단적으로 줄임 */
+    line-height: 0.85; /* 두꺼운 폰트에 맞춰 간격 더 축소 */
+    letter-spacing: -0.04em; /* 더 촘촘하게 */
     cursor: default;
     user-select: none;
     color: #000000;
-    /* 간격을 촘촘하게 하기 위해 패딩을 최소화 */
-    padding: 2px; 
+    padding: 0px; /* 겹침 방지 여백 최소화 */
     box-sizing: border-box;
     white-space: normal; 
     word-break: keep-all; 
     max-width: 95vw;
+    
+    /* 폰트 렌더링 최적화 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
