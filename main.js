@@ -155,7 +155,6 @@ function showSidePanel(word) {
 
     const winWidth = window.innerWidth;
     const activePanel = document.getElementById('active-panel');
-    
     if (activePanel && winWidth > 768) {
         const rect = activePanel.getBoundingClientRect();
         if ((rect.left + rect.width / 2) < winWidth / 2) {
@@ -187,12 +186,19 @@ function showSidePanel(word) {
 
             if (relatedWords.size > 0) {
                 subColumn.style.display = 'flex';
-                // ★ 빨간색 텍스트 랜덤 순서 나열 로직 추가
+                // 빨간색 텍스트 랜덤 섞기
                 const randomRelatedWords = Array.from(relatedWords).sort(() => Math.random() - 0.5);
                 randomRelatedWords.forEach(w => {
                     const item = document.createElement('div'); 
                     item.className = 'side-item-red'; 
                     item.innerText = w;
+                    
+                    // ★ 빨간색 텍스트 클릭 시 구글 검색 기능 추가
+                    item.onclick = (e) => {
+                        e.stopPropagation();
+                        window.open(`https://www.google.com/search?q=${encodeURIComponent(w)}`, '_blank');
+                    };
+                    
                     subColumn.appendChild(item);
                 });
             }
