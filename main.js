@@ -2,6 +2,7 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8
 
 let allRows = [], wordToSourceMap = {}, wordToBColumnMap = {}, wordToRowIndicesMap = {}, wordToColumnMap = {}, uniqueWordsList = [], wordCounts = {}, currentSelectedWrapper = null, currentFilterCol = null;
 
+// 스크롤 방지 로직
 function preventDefaultScroll(e) {
     if (!e.target.closest('.node-container') && !e.target.closest('.side-column-sub') && !e.target.closest('.side-column-main')) { e.preventDefault(); }
 }
@@ -20,7 +21,7 @@ async function init() {
                 renderBatch();
             }
         });
-    } catch (err) { console.error("로드 실패", err); }
+    } catch (err) { console.error("데이터 로드 실패", err); }
 }
 
 function renderTopBar(header) {
@@ -31,6 +32,7 @@ function renderTopBar(header) {
             const item = document.createElement('div');
             item.className = 'top-bar-item';
             item.innerText = header[i];
+            // 상단 바 아이템 클릭 시 배경 클릭 이벤트 방해하지 않도록 stopPropagation
             item.onclick = (e) => { e.stopPropagation(); toggleColumnFilter(i, item); };
             topBar.appendChild(item);
         }
@@ -148,7 +150,7 @@ function showSidePanel(word) {
     const existing = document.getElementById('side-panel'); if (existing) existing.remove();
     const sidePanel = document.createElement('div');
     sidePanel.id = 'side-panel';
-    sidePanel.onclick = (e) => e.stopPropagation();
+    sidePanel.onclick = (e) => e.stopPropagation(); // 패널 클릭 시 배경 클릭 전파 방지
     const mainColumn = document.createElement('div'); mainColumn.className = 'side-column-main';
     const subColumn = document.createElement('div'); subColumn.className = 'side-column-sub';
     subColumn.style.display = 'none';
@@ -186,19 +188,15 @@ function showSidePanel(word) {
 
             if (relatedWords.size > 0) {
                 subColumn.style.display = 'flex';
-                // 빨간색 텍스트 랜덤 섞기
                 const randomRelatedWords = Array.from(relatedWords).sort(() => Math.random() - 0.5);
                 randomRelatedWords.forEach(w => {
                     const item = document.createElement('div'); 
                     item.className = 'side-item-red'; 
                     item.innerText = w;
-                    
-                    // ★ 빨간색 텍스트 클릭 시 구글 검색 기능 추가
                     item.onclick = (e) => {
                         e.stopPropagation();
                         window.open(`https://www.google.com/search?q=${encodeURIComponent(w)}`, '_blank');
                     };
-                    
                     subColumn.appendChild(item);
                 });
             }
@@ -223,7 +221,6 @@ function updatePanelPosition() {
     const winWidth = window.innerWidth;
     const padding = winWidth > 768 ? 60 : winWidth * 0.05;
     const boxWidth = Math.min(500, winWidth - (padding * 2));
-    
     if (winWidth > 768) {
         let posX = (rect.left + rect.width / 2 < winWidth / 2) ? rect.left + rect.width + 40 : rect.left - boxWidth - 40;
         panel.style.left = `${Math.max(padding, Math.min(posX, winWidth - boxWidth - padding))}px`;
@@ -251,7 +248,9 @@ function resetAll() {
     document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('highlight', 'highlight-blue'));
 }
 
+// 배경 클릭 시 전체 초기화
 document.addEventListener('click', resetAll);
+
 window.addEventListener('resize', () => { if (currentSelectedWrapper) updatePanelPosition(); });
 window.addEventListener('scroll', () => { if (!document.body.classList.contains('stop-scroll') && (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800)) renderBatch(); });
 init();

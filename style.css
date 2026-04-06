@@ -7,6 +7,7 @@ body, html {
 
 body.stop-scroll { overflow: hidden !important; }
 
+/* 1. 상단 바 */
 #top-bar {
     position: fixed; top: 0; left: 0; width: 100%;
     height: 80px; background-color: #ffffff;
@@ -15,14 +16,11 @@ body.stop-scroll { overflow: hidden !important; }
     box-sizing: border-box;
 }
 
-.top-bar-item {
-    font-size: clamp(18px, 2.5vw, 32px); 
-    font-weight: 800; color: #000000;
-    cursor: pointer; white-space: nowrap; transition: color 0.3s ease;
-}
+.top-bar-item { font-size: clamp(18px, 2.5vw, 32px); cursor: pointer; }
 .top-bar-item.active-b { color: blue !important; }
 .top-bar-item.active-other { color: #A020F0 !important; }
 
+/* 2. 메인 그리드 및 시각 보정 (핵심) */
 #stream-container {
     display: flex; flex-wrap: wrap;
     justify-content: flex-start; align-items: flex-start; 
@@ -31,94 +29,81 @@ body.stop-scroll { overflow: hidden !important; }
     box-sizing: border-box; width: 100%;
 }
 
-#stream-container.filtered .word-wrapper:not(.highlight) { opacity: 0.1; pointer-events: none; }
-#stream-container.dimmed .word-wrapper { opacity: 0.1; pointer-events: none; }
-#stream-container.dimmed .word-wrapper.selected { 
-    opacity: 0.5 !important; 
-    pointer-events: auto; 
-    z-index: 1001; 
-}
-
 .word-wrapper {
     position: relative; display: inline-block; vertical-align: top;
-    border-top: 1.5pt solid #000000; 
-    padding-top: 12px; 
+    border-top: 1.5pt solid #000000; /* 상단 그리드 라인 */
+    padding-top: 12px; /* 텍스트를 라인에 밀착시키는 시각 보정 */
     cursor: pointer; 
     transition: opacity 0.4s ease, border-color 0.3s ease;
     max-width: calc(100vw - 120px); box-sizing: border-box; z-index: 1;
 }
 
-.word-wrapper.highlight { border-top-color: #A020F0 !important; }
-.word-wrapper.highlight .floating-text { color: #A020F0 !important; }
-.word-wrapper.highlight::after { background-color: #A020F0 !important; }
-
-.word-wrapper.highlight-blue { border-top-color: blue !important; }
-.word-wrapper.highlight-blue .floating-text { color: blue !important; }
-.word-wrapper.highlight-blue::after { background-color: blue !important; }
-
+/* 가로선 연장 */
 .word-wrapper::after {
     content: ""; position: absolute; top: -1.5pt; left: 100%;
     width: 100vw; height: 1.5pt; background-color: #000000;
 }
 
+/* 필터링 색상 */
+.word-wrapper.highlight { border-top-color: #A020F0 !important; }
+.word-wrapper.highlight .floating-text { color: #A020F0 !important; }
+.word-wrapper.highlight::after { background-color: #A020F0 !important; }
+.word-wrapper.highlight-blue { border-top-color: blue !important; }
+.word-wrapper.highlight-blue .floating-text { color: blue !important; }
+.word-wrapper.highlight-blue::after { background-color: blue !important; }
+
+/* 메인 텍스트 가독성 (행간 1.25) */
 .floating-text { 
-    line-height: 0.85; 
+    line-height: 1.25; 
     letter-spacing: -0.04em; 
-    word-break: break-all; 
-    display: block; 
-    width: 100%; 
+    word-break: keep-all; 
+    overflow-wrap: break-word;
+    display: block; width: 100%; 
 }
 
-.keyword-link { 
-    position: relative; display: inline-block; cursor: pointer; 
-    vertical-align: top; color: inherit; 
-}
+/* 3. 투명도 로직 */
+#stream-container.filtered .word-wrapper:not(.highlight) { opacity: 0.1; pointer-events: none; }
+#stream-container.dimmed .word-wrapper { opacity: 0.1; pointer-events: none; }
+#stream-container.dimmed .word-wrapper.selected { opacity: 0.5 !important; pointer-events: auto; z-index: 1001; }
+
+/* 4. 형광 초록 효과 */
+.keyword-link { position: relative; display: inline-block; cursor: pointer; vertical-align: top; color: inherit; }
 .inner-text { position: relative; display: inline-block; z-index: 2; transition: color 0.2s ease; }
 .keyword-link:hover .inner-text,
 .keyword-link.active-keyword .inner-text { color: #00ff00 !important; }
 
-.node-container { 
-    position: fixed; top: 120px; display: flex; flex-direction: column; 
-    gap: clamp(40px, 8vh, 80px); z-index: 1002; pointer-events: auto; 
-    max-height: calc(100vh - 150px); overflow-y: auto; 
-    scrollbar-width: none; background: transparent !important;
-    width: calc(100% - 120px); max-width: 500px;
-}
-.node-text { 
-    position: relative; color: #000000; font-size: clamp(15px, 1.3vw, 18px); 
-    font-weight: 800; line-height: 1.6; border-top: 1.5pt solid #000000; 
-    padding-top: 20px; background: transparent !important;
-}
-
+/* 5. 사이드 패널 및 빨간 텍스트 줄바꿈 */
 #side-panel { 
     position: fixed; top: 120px; z-index: 1005; display: flex; 
     pointer-events: none; max-width: calc(100vw - 120px); gap: 30px;
 }
 .side-column-main { display: flex; flex-direction: column; gap: 30px; width: clamp(140px, 20vw, 250px); pointer-events: auto; }
 .side-column-sub { 
-    display: flex; flex-wrap: wrap; align-content: flex-start; gap: 12px 18px; 
-    flex-grow: 1; max-width: 400px; border-top: 1.5pt solid red; pointer-events: auto; padding-top: 15px;
+    display: flex; flex-wrap: wrap; align-content: flex-start; 
+    gap: 12px 18px; flex-grow: 1; max-width: 550px; 
+    border-top: 1.5pt solid red; pointer-events: auto; padding-top: 15px;
 }
 .side-item-pink { font-size: 15px; font-weight: 800; color: #FF007F; border-top: 1.5pt solid #FF007F; padding-top: 12px; cursor: pointer; }
-
-/* 빨간색 텍스트 스타일: 클릭 피드백 */
 .side-item-red { 
     font-size: 13px; font-weight: 800; color: red; 
-    white-space: nowrap; 
-    cursor: pointer;
-    transition: text-decoration 0.2s ease;
+    white-space: normal; word-break: keep-all; 
+    cursor: pointer; transition: text-decoration 0.2s ease;
 }
-.side-item-red:hover {
-    text-decoration: underline;
+.side-item-red:hover { text-decoration: underline; }
+
+/* 6. 상세 노드 */
+.node-container { 
+    position: fixed; top: 120px; display: flex; flex-direction: column; 
+    gap: clamp(40px, 8vh, 80px); z-index: 1002; pointer-events: auto; 
+    max-height: calc(100vh - 150px); overflow-y: auto; scrollbar-width: none;
+    width: calc(100% - 120px); max-width: 500px;
+}
+.node-text { 
+    position: relative; color: #000000; font-size: clamp(15px, 1.3vw, 18px); 
+    font-weight: 800; line-height: 1.6; border-top: 1.5pt solid #000000; padding-top: 20px;
 }
 
 @media (max-width: 768px) {
-    #top-bar { padding: 0 5%; }
-    #stream-container { padding: 120px 5% 100px; }
-    .word-wrapper { max-width: calc(100vw - 10%); }
-    .node-container { width: calc(100% - 10%); left: 5% !important; top: 100px; }
-    #side-panel { 
-        position: fixed; top: 100px !important; left: 5% !important; 
-        right: auto !important; width: 90%; flex-direction: column !important; z-index: 1010;
-    }
+    #side-panel { width: 90%; flex-direction: column !important; top: 100px !important; left: 5% !important; }
+    .side-column-sub { max-width: 100%; }
 }
