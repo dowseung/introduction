@@ -1,40 +1,39 @@
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8yqJU0ZGStIv7BKToWATo5oj6pooV8KBHz_CTPwbORSdT93aF59rqEO_ENXdmEkUxXL/pub?gid=403210794&single=true&output=csv';
 
-let uniqueWordsList = []; 
-let wordCounts = {}; 
+let wordToSourceMap = {}; 
+let uniqueWordsList = [];
+let wordCounts = {};
 
 async function init() {
     try {
-        const res = await fetch(`${SHEET_URL}&cachebuster=${new Date().getTime()}`);
+        const res = await fetch(`${SHEET_URL}&cache=${new Date().getTime()}`);
         const csvText = await res.text();
-        
         Papa.parse(csvText, {
             header: false,
             complete: (results) => {
-                const rows = results.data.slice(1);
-                processData(rows);
+                processData(results.data.slice(1));
                 document.fonts.ready.then(() => {
-                    // 무한 스크롤 초기 분량 확보를 위해 2회 실행
                     renderBatch();
                     renderBatch();
                 });
             }
         });
-    } catch (err) {
-        console.error("데이터 로드 실패", err);
-    }
+    } catch (err) { console.error(err); }
 }
 
 function processData(rows) {
-    wordCounts = {};
+    wordCounts = {}; wordToSourceMap = {};
     rows.forEach(row => {
-        const middleCells = row.slice(1, -1); 
-        middleCells.forEach(cell => {
+        const sourceText = row[0];
+        row.slice(1, -1).forEach(cell => {
             if (!cell) return;
-            const lines = cell.toString().split('\n');
-            lines.forEach(line => {
+            cell.toString().split('\n').forEach(line => {
                 const word = line.trim();
-                if (word.length > 0) wordCounts[word] = (wordCounts[word] || 0) + 1;
+                if (word.length > 0) {
+                    wordCounts[word] = (wordCounts[word] || 0) + 1;
+                    if (!wordToSourceMap[word]) wordToSourceMap[word] = new Set();
+                    wordToSourceMap[word].add(sourceText);
+                }
             });
         });
     });
@@ -44,66 +43,88 @@ function processData(rows) {
 function renderBatch() {
     const container = document.getElementById('stream-container');
     const winWidth = window.innerWidth;
-
-    // 무작위 셔플
-    let words = [...uniqueWordsList];
-    for (let i = words.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [words[i], words[j]] = [words[j], words[i]];
-    }
+    let words = [...uniqueWordsList].sort(() => Math.random() - 0.5);
 
     words.forEach(word => {
-        const count = wordCounts[word];
         const wrapper = document.createElement('div');
         wrapper.className = 'word-wrapper';
-        
         const item = document.createElement('div');
         item.className = 'floating-text';
         item.innerText = word;
 
-        // 전체적으로 축소된 텍스트 크기 로직
-        const isMobile = winWidth < 768;
-        const baseSizeFactor = isMobile ? 0.03 : 0.012; 
-        const responsiveBase = (winWidth * baseSizeFactor) + 10;
-        const step = isMobile ? 4 : 8; 
-        
-        // 정갈한 크기 (최소 14px, 최대 70px)
-        const fontSize = Math.min(Math.max(responsiveBase + (count - 1) * step, 14), 70);
+        const fontSize = Math.min(Math.max((winWidth * 0.012) + (wordCounts[word] - 1) * 8, 14), 70);
         item.style.fontSize = `${fontSize}px`;
+        item.style.marginTop = `-${fontSize * 0.18}px`;
 
-        /**
-         * [시각적 상단선 정밀 보정]
-         * 폰트 크기가 커질수록 자동으로 늘어나는 상단 여백을 상쇄합니다.
-         * fontSize * 0.18 만큼 위로 강제 인양하여 
-         * 모든 글자의 실질적 머리 부분이 라인으로부터 동일한 거리에 위치하게 합니다.
-         */
-        const visualAdjustment = fontSize * 0.18; 
-        item.style.marginTop = `-${visualAdjustment}px`;
-
-        // 8단어 너비 제한 (모바일 5단어)
-        const limitCount = isMobile ? 5 : 8;
-        wrapper.style.maxWidth = `min(${fontSize * 4.5 * limitCount}px, calc(100vw - 120px))`;
+        wrapper.onclick = (e) => {
+            e.stopPropagation();
+            toggleInteraction(wrapper, word);
+        };
 
         wrapper.appendChild(item);
         container.appendChild(wrapper);
     });
 }
 
-// 무한 스크롤 이벤트
-window.addEventListener('scroll', () => {
-    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) {
-        renderBatch();
+function toggleInteraction(target, word) {
+    const container = document.getElementById('stream-container');
+    const body = document.body;
+    const winWidth = window.innerWidth;
+
+    document.querySelectorAll('.node-container').forEach(n => n.remove());
+    body.classList.remove('stop-scroll');
+
+    if (target.classList.contains('selected')) {
+        target.classList.remove('selected');
+        container.classList.remove('dimmed');
+        return;
     }
+
+    document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('selected'));
+    target.classList.add('selected');
+    container.classList.add('dimmed');
+    body.classList.add('stop-scroll'); 
+
+    const rect = target.getBoundingClientRect();
+    const sources = Array.from(wordToSourceMap[word]);
+    const nodeGroup = document.createElement('div');
+    nodeGroup.className = 'node-container';
+    
+    nodeGroup.onclick = (e) => e.stopPropagation();
+    document.body.appendChild(nodeGroup);
+
+    const boxWidth = Math.min(500, winWidth * 0.85);
+    let posX;
+
+    if (rect.left + rect.width / 2 < winWidth / 2) {
+        posX = Math.min(winWidth - boxWidth - 40, rect.left + rect.width + 40);
+    } else {
+        posX = Math.max(40, rect.left - boxWidth - 40);
+    }
+
+    if (winWidth < 768) posX = 25;
+    nodeGroup.style.left = `${posX}px`;
+
+    sources.forEach((text, i) => {
+        const node = document.createElement('div');
+        node.className = 'node-text';
+        node.innerText = text;
+        node.style.animationDelay = `${i * 0.08}s`;
+        nodeGroup.appendChild(node);
+    });
+}
+
+document.addEventListener('click', () => {
+    document.body.classList.remove('stop-scroll');
+    document.getElementById('stream-container').classList.remove('dimmed');
+    document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('selected'));
+    document.querySelectorAll('.node-container').forEach(n => n.remove());
 });
 
-// 리사이즈 시 초기화 및 재구성
-window.addEventListener('resize', () => {
-    clearTimeout(window.rt);
-    window.rt = setTimeout(() => {
-        document.getElementById('stream-container').innerHTML = "";
-        renderBatch();
-        renderBatch();
-    }, 200);
+window.addEventListener('scroll', () => {
+    if (!document.body.classList.contains('stop-scroll')) {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) renderBatch();
+    }
 });
 
 init();
