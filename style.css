@@ -4,36 +4,47 @@ body, html {
     width: 100%;
     overflow-x: hidden; 
     background-color: #ffffff; 
-    
-    /* 폰트 우선순위 설정: 영문/숫자는 Helvetica, 한글은 Asap */
     font-family: "Helvetica Neue", Helvetica, Arial, "Asap", sans-serif;
-    font-weight: 800; /* ExtraBold */
+    font-weight: 800;
     color: #000000;
 }
 
 #stream-container {
-    position: relative;
-    width: 100vw;
-    min-height: 100vh;
+    display: flex;
+    flex-wrap: wrap;
+    /* [수정] 상단 정렬을 더 엄격하게 적용 */
+    align-items: flex-start; 
+    align-content: flex-start;
+    
+    gap: 15px 35px; /* 상하 간격을 줄여 상단선 강조 */
+    padding: 60px;
+    max-width: 100%;
+    margin: 0 auto;
     box-sizing: border-box;
-    padding: 10px 0;
 }
 
 .floating-text {
-    position: absolute;
-    display: inline-block;
-    line-height: 0.85; /* 두꺼운 폰트에 맞춰 간격 더 축소 */
-    letter-spacing: -0.04em; /* 더 촘촘하게 */
+    position: relative; 
+    display: flex; /* 내부 요소 정렬을 위해 flex로 변경 */
+    align-items: flex-start;
+
+    /* [핵심] 폰트 내부의 상단 여백을 강제로 제거하기 위해 1보다 작은 값 적용 */
+    line-height: 0.8; 
+    
+    /* 큰 글자에서 위쪽이 뜨는 현상을 방지하기 위해 상단 마진 제거 */
+    margin-top: 0;
+    padding-top: 0;
+
+    letter-spacing: -0.04em;
+    text-align: left;
     cursor: default;
     user-select: none;
     color: #000000;
-    padding: 0px; /* 겹침 방지 여백 최소화 */
     box-sizing: border-box;
+
     white-space: normal; 
     word-break: keep-all; 
-    max-width: 95vw;
+    overflow-wrap: break-word;
     
-    /* 폰트 렌더링 최적화 */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    max-width: calc(100vw - 120px); 
 }
