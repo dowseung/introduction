@@ -1,5 +1,5 @@
 body, html {
-    margin: 0; padding: 0; width: 100%;
+    margin: 0; padding: 0; width: 100%; overflow-x: hidden;
     background-color: #ffffff;
     font-family: "Helvetica Neue", Helvetica, Arial, "Asap", sans-serif;
     font-weight: 800; color: #000000;
@@ -10,8 +10,10 @@ body.stop-scroll { overflow: hidden; }
 #stream-container {
     display: flex; flex-wrap: wrap;
     justify-content: flex-start; align-items: flex-start;
-    column-gap: 40px; row-gap: 120px;
-    padding: 100px 60px; box-sizing: border-box;
+    column-gap: 50px; row-gap: 130px;
+    /* [수정] 좌우 60px 패딩을 주어 창과 떨어뜨림 */
+    padding: 100px 60px; 
+    box-sizing: border-box;
     transition: opacity 0.5s ease;
 }
 
@@ -24,25 +26,29 @@ body.stop-scroll { overflow: hidden; }
     position: relative; display: inline-block; vertical-align: top;
     border-top: 1.5pt solid #000000; padding-top: 25px;
     cursor: pointer; transition: opacity 0.4s ease, transform 0.3s ease;
+    margin-right: 10px; /* 라인 간섭 최소화 */
 }
 
 .word-wrapper.selected { z-index: 1001; opacity: 1 !important; }
 
+/* [복원] 라인이 단어 사이를 잇고 무한히 뻗어나가도록 수정 */
 .word-wrapper::after {
     content: ""; position: absolute; top: -1.5pt; left: 100%;
-    width: 100vw; height: 1.5pt; background-color: #000000;
+    /* [수정] 무한히 뻗게 하되, 상위 컨테이너 패딩에 걸리도록 설정 */
+    width: 100vw; 
+    height: 1.5pt; background-color: #000000;
 }
 
 .floating-text { line-height: 1; letter-spacing: -0.04em; }
 
-/* 1열 텍스트 컨테이너 */
+/* --- 1열 텍스트 (크기 유지) --- */
 .node-container {
     position: fixed;
     top: 100px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 80px; /* 라인 간격을 고려해 간격을 더 넓힘 */
+    gap: 80px;
     z-index: 1002;
     pointer-events: auto;
     max-height: calc(100vh - 150px);
@@ -51,41 +57,31 @@ body.stop-scroll { overflow: hidden; }
     padding-right: 20px;
     padding-bottom: 100px;
     box-sizing: border-box;
-
-    /* [핵심] 스크롤바 UI 제거 (모든 브라우저) */
-    -ms-overflow-style: none; /* IE, Edge */
-    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
-/* [핵심] 크롬, 사파리 스크롤바 숨기기 */
-.node-container::-webkit-scrollbar {
-    display: none;
-}
+.node-container::-webkit-scrollbar { display: none; }
 
 .node-text {
     position: relative;
     color: #000000;
-    font-size: clamp(16px, 2.5vw, 19px);
+    font-size: 17px; /* [유지] 기존 크기 그대로 유지 */
     font-weight: 800;
     max-width: min(500px, 85vw);
     white-space: normal;
     word-break: keep-all;
     line-height: 1.6;
     opacity: 0;
-    
-    /* [핵심] 등장하는 텍스트 상단에도 1.5pt 라인 추가 */
     border-top: 1.5pt solid #000000;
     padding-top: 20px;
-
     transform: translateY(10px);
     animation: slideIn 0.5s ease-out forwards;
 }
 
-@keyframes slideIn {
-    to { opacity: 1; transform: translateY(0); }
-}
+@keyframes slideIn { to { opacity: 1; transform: translateY(0); } }
 
 @media (max-width: 768px) {
-    #stream-container { padding: 60px 30px; row-gap: 80px; }
+    #stream-container { padding: 60px 30px; row-gap: 90px; }
     .node-container { top: 60px; }
 }

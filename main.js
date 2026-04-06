@@ -6,7 +6,7 @@ let wordCounts = {};
 
 async function init() {
     try {
-        const res = await fetch(`${SHEET_URL}&cache=${new Date().getTime()}`);
+        const res = await fetch(`${SHEET_URL}&cachebuster=${new Date().getTime()}`);
         const csvText = await res.text();
         Papa.parse(csvText, {
             header: false,
@@ -18,7 +18,7 @@ async function init() {
                 });
             }
         });
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("데이터 로드 실패", err); }
 }
 
 function processData(rows) {
@@ -52,9 +52,11 @@ function renderBatch() {
         item.className = 'floating-text';
         item.innerText = word;
 
-        const fontSize = Math.min(Math.max((winWidth * 0.012) + (wordCounts[word] - 1) * 8, 14), 70);
+        // [수정] 기본 화면 텍스트 크기 전반적으로 키움
+        // 최소 20px, 가중치 증가
+        const fontSize = Math.min(Math.max((winWidth * 0.018) + (wordCounts[word] - 1) * 10, 20), 100);
         item.style.fontSize = `${fontSize}px`;
-        item.style.marginTop = `-${fontSize * 0.18}px`;
+        item.style.marginTop = `-${fontSize * 0.18}px`; // 상단 시각 보정
 
         wrapper.onclick = (e) => {
             e.stopPropagation();
@@ -97,12 +99,12 @@ function toggleInteraction(target, word) {
     let posX;
 
     if (rect.left + rect.width / 2 < winWidth / 2) {
-        posX = Math.min(winWidth - boxWidth - 40, rect.left + rect.width + 40);
+        posX = Math.min(winWidth - boxWidth - 60, rect.left + rect.width + 40);
     } else {
-        posX = Math.max(40, rect.left - boxWidth - 40);
+        posX = Math.max(60, rect.left - boxWidth - 40);
     }
 
-    if (winWidth < 768) posX = 25;
+    if (winWidth < 768) posX = 30;
     nodeGroup.style.left = `${posX}px`;
 
     sources.forEach((text, i) => {
