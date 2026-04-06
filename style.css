@@ -93,7 +93,20 @@ body, html {
 #big-text-display { font-size: clamp(24px, 5vw, 120px); font-weight: 900; line-height: 1.15; text-align: center; }
 
 /* --- 5. 상세 패널 --- */
-.node-container { position: fixed; z-index: 1002; width: min(450px, 90vw); max-height: 60vh; overflow-y: auto; }
+.node-container { 
+    position: fixed; 
+    z-index: 1002; 
+    width: min(450px, 90vw); 
+    /* [수정] 높이 제한을 화면의 80%로 확장 (넘치면 자동 스크롤) */
+    max-height: 80vh; 
+    overflow-y: auto; 
+    scrollbar-width: none; /* 스크롤바 숨김 (선택 사항) */
+}
+
+/* 크롬/사파리에서 스크롤바 숨기기 */
+.node-container::-webkit-scrollbar { 
+    display: none; 
+}
 .node-text { border-top: 1.5pt solid #000; padding-top: 20px; font-size: 18px; line-height: 1.6; margin-bottom: 40px; }
 .keyword-link { cursor: pointer; color: inherit; }
 .keyword-link:hover .inner-text, .keyword-link.active-keyword .inner-text { color: #00ff00 !important; }
