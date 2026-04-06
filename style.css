@@ -1,8 +1,8 @@
 /* --- 1. 전역 설정: 가로 스크롤 차단 및 단어 단위 줄바꿈 --- */
 * { 
     box-sizing: border-box; 
-    word-break: keep-all;       /* 단어 단위로 줄바꿈 (한글/영어 공통) */
-    overflow-wrap: break-word;  /* 아주 긴 단어만 예외적으로 줄바꿈 */
+    word-break: keep-all; 
+    overflow-wrap: break-word;
 }
 
 body, html {
@@ -105,12 +105,56 @@ body, html {
 .keyword-link:hover .inner-text, .keyword-link.active-keyword .inner-text { color: #00ff00 !important; }
 #side-panel { position: fixed; z-index: 1005; display: flex; gap: 20px; pointer-events: none; }
 .side-column-main { width: min(300px, 60vw); pointer-events: auto; display: flex; flex-direction: column; gap: 20px; }
-.side-column-sub { width: min(500px, 80vw); pointer-events: auto; border-top: 1.5pt solid red; padding-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; }
+.side-column-sub {
+    width: min(500px, 80vw);
+    
+    /* [핵심 수정] 화면 높이의 60%까지는 자유롭게 늘어나다가, 그 이후부터 스크롤 발생 */
+    max-height: 60vh; 
+    overflow-y: auto;
+    
+    /* 스크롤바 숨기기 (기능은 작동함) */
+    scrollbar-width: none; 
+    -ms-overflow-style: none; /* IE/Edge */
+    
+    pointer-events: auto;
+    border-top: 1.5pt solid red;
+    padding: 20px 10px; /* 상단 여백을 조금 더 줘서 시원하게 */
+    
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 18px;    /* 가로 간격 */
+    row-gap: 20px;       /* 세로 간격 (요청하신 대로 더 넓고 일정하게) */
+    align-content: flex-start;
+}
+
+/* 빨간색 텍스트 컨테이너 */
+.side-column-sub {
+    width: min(500px, 80vw);
+    max-height: 65vh;      /* 화면 높이 65%까지 늘어난 후 스크롤 발생 */
+    overflow-y: auto; 
+    scrollbar-width: none; /* 스크롤바 숨김 */
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 18px;      /* 가로 간격 */
+    row-gap: 20px;         /* 세로 줄 간격 (일정하게 유지) */
+    padding: 20px 10px;
+    border-top: 1.5pt solid red;
+}
+
+.side-column-sub::-webkit-scrollbar { display: none; }
 .side-item-pink { color: #FF007F; border-top: 1.5pt solid #FF007F; padding-top: 10px; font-size: 15px; display: flex; justify-content: space-between; cursor: pointer; }
 .side-icon-graphic { width: 20px; height: 14px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.3s; }
 .side-icon-graphic.active-rotate { transform: rotate(90deg); }
 .side-icon-graphic span { height: 2px; background: #FF007F; width: 100%; }
-.side-item-red { color: red; font-size: 13px; cursor: pointer; line-height: 1.1; margin: 2px 0; }
+.side-item-red {
+    color: red;
+    font-size: 13px;
+    display: block;
+    width: fit-content;
+    line-height: 1.6;      /* 행간 확보 */
+    margin: 0;
+    padding: 2px 0;
+}
 
 @media (max-width: 768px) {
     #top-bar { height: 60px; padding: 0 5%; }

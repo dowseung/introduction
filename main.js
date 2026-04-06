@@ -90,43 +90,20 @@ function renderBatch() {
 }
 
 function toggleInteraction(target, word) {
-    if (target && target.classList.contains('selected')) { closeDetailOnly(); return; }
+    // 이미 선택된 상태라면 닫기
+    if (target && target.classList.contains('selected')) { 
+        closeDetailOnly(); 
+        return; 
+    }
+    
+    // 기존에 열려있는 상세창/패널 모두 닫기
     closeDetailOnly();
-    const cols = wordToColumnMap[word];
-    if (cols && cols.has(10)) { renderTimeline(word); } 
-    else { executeOriginalLogic(target, word); }
+    
+    // 열 구분 없이 모든 단어에 대해 기존 상세 로직 실행
+    executeOriginalLogic(target, word); 
 }
 
-function renderTimeline(selectedWord) {
-    document.getElementById('stream-container').classList.add('dimmed');
-    const timelineOverlay = document.createElement('div');
-    timelineOverlay.id = 'timeline-mode';
-    timelineOverlay.onclick = (e) => { e.stopPropagation(); resetAll(); };
 
-    const jWordsInOrder = [];
-    allRows.forEach(row => {
-        if (row[10]) {
-            row[10].split('\n').forEach(w => {
-                const trimmed = w.trim();
-                if (trimmed && !jWordsInOrder.includes(trimmed)) jWordsInOrder.push(trimmed);
-            });
-        }
-    });
-
-    jWordsInOrder.forEach(word => {
-        const item = document.createElement('div');
-        item.className = 'timeline-item';
-        item.innerText = word;
-        if (word === selectedWord) item.classList.add('highlight-large');
-        item.onclick = (e) => { e.stopPropagation(); timelineOverlay.remove(); executeOriginalLogic(null, word); };
-        timelineOverlay.appendChild(item);
-    });
-    document.body.appendChild(timelineOverlay);
-    setTimeout(() => {
-        const active = timelineOverlay.querySelector('.highlight-large');
-        if (active) active.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
-}
 
 function executeOriginalLogic(target, word) {
     if (target) target.classList.add('selected');
