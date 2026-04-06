@@ -15,7 +15,10 @@ async function init() {
         Papa.parse(csvText, {
             header: false,
             complete: (results) => {
+                const headerRow = results.data[0]; 
                 allRows = results.data.slice(1);
+                
+                renderTopBar(headerRow); 
                 processData(allRows); 
                 document.fonts.ready.then(() => { renderBatch(); renderBatch(); });
             }
@@ -23,6 +26,23 @@ async function init() {
     } catch (err) { console.error("데이터 로드 실패", err); }
 }
 
+// 수정된 상단 바 렌더링 함수: index 1(B열) 제외, 2(C열)부터 시작
+function renderTopBar(header) {
+    const topBar = document.getElementById('top-bar');
+    if (!header) return;
+    
+    // index 2(C열)부터 12(M열)까지 순회
+    for (let i = 2; i <= 12; i++) {
+        if (header[i]) {
+            const item = document.createElement('div');
+            item.className = 'top-bar-item';
+            item.innerText = header[i];
+            topBar.appendChild(item);
+        }
+    }
+}
+
+/* 이하 기존 processData, highlightKeywords, renderBatch 등 모든 함수 동일하게 유지 */
 function processData(rows) {
     wordCounts = {}; wordToSourceMap = {}; wordToBColumnMap = {}; wordToRowIndicesMap = {};
     rows.forEach((row, rowIndex) => {
@@ -61,101 +81,6 @@ function highlightKeywords(text) {
     return highlightedText;
 }
 
-function showSidePanel(word) {
-    const existing = document.getElementById('side-panel');
-    if (existing) existing.remove();
-    
-    const sidePanel = document.createElement('div');
-    sidePanel.id = 'side-panel';
-    sidePanel.onclick = (e) => e.stopPropagation();
-
-    const mainColumn = document.createElement('div'); 
-    mainColumn.className = 'side-column-main';
-    const subColumn = document.createElement('div'); 
-    subColumn.className = 'side-column-sub';
-    subColumn.style.display = 'none';
-
-    subColumn.onwheel = (e) => e.stopPropagation();
-    subColumn.ontouchmove = (e) => e.stopPropagation();
-
-    const activePanel = document.getElementById('active-panel');
-    const winWidth = window.innerWidth;
-    let isSideOnRight = true;
-
-    if (activePanel) {
-        const rect = activePanel.getBoundingClientRect();
-        if ((rect.left + rect.width / 2) < winWidth / 2) {
-            sidePanel.style.right = '40px'; sidePanel.style.left = 'auto';
-            isSideOnRight = true;
-        } else {
-            sidePanel.style.left = '40px'; sidePanel.style.right = 'auto';
-            isSideOnRight = false;
-        }
-    }
-
-    if (isSideOnRight) {
-        subColumn.style.right = '290px'; subColumn.style.left = 'auto';
-    } else {
-        subColumn.style.left = '290px'; subColumn.style.right = 'auto';
-    }
-
-    // 다른 핑크색 클릭 시 빨간 단어 뭉치를 교체하는 핵심 함수
-    const fillRelatedWords = (targetWord, clickedPinkItem) => {
-        // 1. 기존 내용 삭제 (초기화)
-        subColumn.innerHTML = '';
-        
-        const rowIndices = wordToRowIndicesMap[targetWord];
-        if (!rowIndices) return;
-        
-        const relatedWords = new Set();
-        // 현재 클릭한 핑크색 텍스트(B열)와 같은 행에 있는 C~M열 단어 추출
-        rowIndices.forEach(idx => {
-            const row = allRows[idx];
-            // 클릭한 핑크 텍스트가 해당 행의 B열(row[1])과 일치하는 경우에만 데이터 추출
-            if (row[1] === clickedPinkItem) {
-                row.slice(2, 13).forEach(cell => {
-                    if (!cell) return;
-                    cell.toString().split('\n').forEach(w => {
-                        const trimmed = w.trim();
-                        if (trimmed) relatedWords.add(trimmed);
-                    });
-                });
-            }
-        });
-
-        // 2. 새로운 단어로 채우기
-        if (relatedWords.size > 0) {
-            subColumn.style.display = 'flex';
-            relatedWords.forEach(w => {
-                const item = document.createElement('div');
-                item.className = 'side-item-red'; item.innerText = w;
-                subColumn.appendChild(item);
-            });
-            // 스크롤 위치 맨 위로 초기화
-            subColumn.scrollTop = 0;
-        } else {
-            subColumn.style.display = 'none';
-        }
-    };
-
-    const bTexts = wordToBColumnMap[word];
-    if (bTexts) {
-        Array.from(bTexts).forEach(text => {
-            const item = document.createElement('div');
-            item.className = 'side-item-pink'; item.innerText = text;
-            item.onclick = (e) => { 
-                e.stopPropagation(); 
-                fillRelatedWords(word, text); // 클릭한 구체적인 핑크 텍스트 전달
-            }; 
-            mainColumn.appendChild(item);
-        });
-    }
-
-    mainColumn.appendChild(subColumn);
-    sidePanel.appendChild(mainColumn);
-    document.body.appendChild(sidePanel);
-}
-
 function addBorder(el) {
     if (el.querySelector('svg')) return;
     const rect = el.getBoundingClientRect();
@@ -170,6 +95,78 @@ function addBorder(el) {
 }
 
 function removeBorder(el) { const svg = el.querySelector('svg'); if (svg) svg.remove(); }
+
+function showSidePanel(word) {
+    const existing = document.getElementById('side-panel');
+    if (existing) existing.remove();
+    const sidePanel = document.createElement('div');
+    sidePanel.id = 'side-panel';
+    sidePanel.onclick = (e) => e.stopPropagation();
+    const mainColumn = document.createElement('div'); 
+    mainColumn.className = 'side-column-main';
+    const subColumn = document.createElement('div'); 
+    subColumn.className = 'side-column-sub';
+    subColumn.style.display = 'none';
+    subColumn.onwheel = (e) => e.stopPropagation();
+    subColumn.ontouchmove = (e) => e.stopPropagation();
+
+    const activePanel = document.getElementById('active-panel');
+    const winWidth = window.innerWidth;
+    let isSideOnRight = true;
+    if (activePanel) {
+        const rect = activePanel.getBoundingClientRect();
+        if ((rect.left + rect.width / 2) < winWidth / 2) {
+            sidePanel.style.right = '40px'; sidePanel.style.left = 'auto';
+            isSideOnRight = true;
+        } else {
+            sidePanel.style.left = '40px'; sidePanel.style.right = 'auto';
+            isSideOnRight = false;
+        }
+    }
+    if (isSideOnRight) { subColumn.style.right = '290px'; subColumn.style.left = 'auto'; } 
+    else { subColumn.style.left = '290px'; subColumn.style.right = 'auto'; }
+
+    const fillRelatedWords = (targetWord, clickedPinkItem) => {
+        subColumn.innerHTML = '';
+        const rowIndices = wordToRowIndicesMap[targetWord];
+        if (!rowIndices) return;
+        const relatedWords = new Set();
+        rowIndices.forEach(idx => {
+            const row = allRows[idx];
+            if (row[1] === clickedPinkItem) {
+                row.slice(2, 13).forEach(cell => {
+                    if (!cell) return;
+                    cell.toString().split('\n').forEach(w => {
+                        const trimmed = w.trim();
+                        if (trimmed) relatedWords.add(trimmed);
+                    });
+                });
+            }
+        });
+        if (relatedWords.size > 0) {
+            subColumn.style.display = 'flex';
+            relatedWords.forEach(w => {
+                const item = document.createElement('div');
+                item.className = 'side-item-red'; item.innerText = w;
+                subColumn.appendChild(item);
+            });
+            subColumn.scrollTop = 0;
+        } else { subColumn.style.display = 'none'; }
+    };
+
+    const bTexts = wordToBColumnMap[word];
+    if (bTexts) {
+        Array.from(bTexts).forEach(text => {
+            const item = document.createElement('div');
+            item.className = 'side-item-pink'; item.innerText = text;
+            item.onclick = (e) => { e.stopPropagation(); fillRelatedWords(word, text); }; 
+            mainColumn.appendChild(item);
+        });
+    }
+    mainColumn.appendChild(subColumn);
+    sidePanel.appendChild(mainColumn);
+    document.body.appendChild(sidePanel);
+}
 
 function renderBatch() {
     const container = document.getElementById('stream-container');
