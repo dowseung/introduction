@@ -3,7 +3,9 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8
 let allRows = [], wordToSourceMap = {}, wordToBColumnMap = {}, wordToRowIndicesMap = {}, uniqueWordsList = [], wordCounts = {}, currentSelectedWrapper = null;
 
 function preventDefaultScroll(e) {
-    if (!e.target.closest('.node-container') && !e.target.closest('#side-panel')) e.preventDefault();
+    if (!e.target.closest('.node-container') && !e.target.closest('.side-column-sub')) {
+        e.preventDefault();
+    }
 }
 
 async function init() {
@@ -73,6 +75,9 @@ function showSidePanel(word) {
     subColumn.className = 'side-column-sub';
     subColumn.style.display = 'none';
 
+    subColumn.onwheel = (e) => e.stopPropagation();
+    subColumn.ontouchmove = (e) => e.stopPropagation();
+
     const activePanel = document.getElementById('active-panel');
     const winWidth = window.innerWidth;
     let isSideOnRight = true;
@@ -88,27 +93,37 @@ function showSidePanel(word) {
         }
     }
 
-    // 붉은 박스 위치 결정 (핑크 기둥 250px + 여유 간격 40px = 약 290px 이동)
     if (isSideOnRight) {
         subColumn.style.right = '290px'; subColumn.style.left = 'auto';
     } else {
         subColumn.style.left = '290px'; subColumn.style.right = 'auto';
     }
 
-    const fillRelatedWords = (targetWord) => {
+    // 다른 핑크색 클릭 시 빨간 단어 뭉치를 교체하는 핵심 함수
+    const fillRelatedWords = (targetWord, clickedPinkItem) => {
+        // 1. 기존 내용 삭제 (초기화)
         subColumn.innerHTML = '';
+        
         const rowIndices = wordToRowIndicesMap[targetWord];
         if (!rowIndices) return;
+        
         const relatedWords = new Set();
+        // 현재 클릭한 핑크색 텍스트(B열)와 같은 행에 있는 C~M열 단어 추출
         rowIndices.forEach(idx => {
-            allRows[idx].slice(2, 13).forEach(cell => {
-                if (!cell) return;
-                cell.toString().split('\n').forEach(w => {
-                    const trimmed = w.trim();
-                    if (trimmed && trimmed !== targetWord) relatedWords.add(trimmed);
+            const row = allRows[idx];
+            // 클릭한 핑크 텍스트가 해당 행의 B열(row[1])과 일치하는 경우에만 데이터 추출
+            if (row[1] === clickedPinkItem) {
+                row.slice(2, 13).forEach(cell => {
+                    if (!cell) return;
+                    cell.toString().split('\n').forEach(w => {
+                        const trimmed = w.trim();
+                        if (trimmed) relatedWords.add(trimmed);
+                    });
                 });
-            });
+            }
         });
+
+        // 2. 새로운 단어로 채우기
         if (relatedWords.size > 0) {
             subColumn.style.display = 'flex';
             relatedWords.forEach(w => {
@@ -116,6 +131,10 @@ function showSidePanel(word) {
                 item.className = 'side-item-red'; item.innerText = w;
                 subColumn.appendChild(item);
             });
+            // 스크롤 위치 맨 위로 초기화
+            subColumn.scrollTop = 0;
+        } else {
+            subColumn.style.display = 'none';
         }
     };
 
@@ -124,7 +143,10 @@ function showSidePanel(word) {
         Array.from(bTexts).forEach(text => {
             const item = document.createElement('div');
             item.className = 'side-item-pink'; item.innerText = text;
-            item.onclick = (e) => { e.stopPropagation(); fillRelatedWords(word); }; 
+            item.onclick = (e) => { 
+                e.stopPropagation(); 
+                fillRelatedWords(word, text); // 클릭한 구체적인 핑크 텍스트 전달
+            }; 
             mainColumn.appendChild(item);
         });
     }

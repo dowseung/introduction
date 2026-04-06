@@ -19,6 +19,7 @@ body.stop-scroll {
     width: 100%;
 }
 
+/* 딤드 처리 시 선택되지 않은 요소들 */
 #stream-container.dimmed .word-wrapper:not(.selected) {
     opacity: 0.1 !important;
     pointer-events: none;
@@ -28,26 +29,51 @@ body.stop-scroll {
     position: relative; display: inline-block; vertical-align: top;
     border-top: 1.5pt solid #000000; 
     padding-top: 0; cursor: pointer; 
-    transition: opacity 0.4s ease;
+    transition: opacity 0.4s ease, border-color 0.3s ease;
     margin-right: 10px;
     max-width: calc(100vw - 120px); 
     box-sizing: border-box;
     z-index: 1;
 }
 
-.word-wrapper.selected { z-index: 1001; opacity: 1 !important; }
-
-.word-wrapper::after {
-    content: ""; position: absolute; top: -1.5pt; left: 100%;
-    width: 2000px; height: 1.5pt; background-color: #000000;
-}
-
 .floating-text { 
     line-height: 1.4; letter-spacing: -0.04em; 
     word-break: keep-all; overflow-wrap: break-word; 
     display: block; width: 100%;
+    transition: color 0.3s ease; /* 색상 변화 부드럽게 */
 }
 
+/* 마우스 올렸을 때: 진한 회색 */
+.word-wrapper:hover .floating-text {
+    color: #555555;
+}
+.word-wrapper:hover {
+    border-top-color: #555555;
+}
+
+/* 클릭하여 선택되었을 때: 진한 회색 유지 */
+.word-wrapper.selected { 
+    z-index: 1001; 
+    opacity: 1 !important; 
+}
+.word-wrapper.selected .floating-text {
+    color: #555555 !important;
+}
+.word-wrapper.selected {
+    border-top-color: #555555 !important;
+}
+
+.word-wrapper::after {
+    content: ""; position: absolute; top: -1.5pt; left: 100%;
+    width: 2000px; height: 1.5pt; background-color: inherit; /* 상단 라인 색상 따라감 */
+    background-color: #000000;
+}
+/* 선택된 상태에서 뒤로 가는 선도 색상 맞춤 */
+.word-wrapper.selected::after {
+    background-color: #555555;
+}
+
+/* 상세/사이드 패널 공통 스타일 */
 .node-container {
     position: fixed; top: 100px;
     display: flex; flex-direction: column;
@@ -58,7 +84,6 @@ body.stop-scroll {
     padding-bottom: 100px; box-sizing: border-box;
     scrollbar-width: none; background: transparent;
 }
-
 .node-container::-webkit-scrollbar { display: none; }
 
 .node-text {
@@ -75,12 +100,10 @@ body.stop-scroll {
     cursor: pointer; padding: 0 8px; margin: 0 -8px;
     vertical-align: top;
 }
-
 .inner-text {
     position: relative; display: inline-block; z-index: 2;
     transition: color 0.2s ease; color: inherit;
 }
-
 .keyword-link:hover .inner-text { color: #00ff00 !important; }
 
 .keyword-border-svg {
@@ -88,13 +111,11 @@ body.stop-scroll {
     width: calc(100% + 10px); height: calc(100% + 10px);
     pointer-events: none; z-index: 1;
 }
-
 .rect-border {
     fill: none; stroke: #00ff00; stroke-width: 10pt;
     stroke-linecap: square;
 }
 
-/* 사이드 패널 */
 #side-panel {
     position: fixed; top: 100px; width: auto;
     max-height: calc(100vh - 150px); z-index: 1005;
@@ -102,26 +123,25 @@ body.stop-scroll {
     background: transparent; scrollbar-width: none;
     pointer-events: none;
 }
-
-#side-panel::-webkit-scrollbar { display: none; }
-
 .side-column-main {
     display: flex; flex-direction: column;
     gap: 40px; width: 250px; flex-shrink: 0;
     pointer-events: auto; position: relative;
 }
-
-/* 붉은색 단어 뭉치: 8~10단어 너비(600px) 확보 및 자동 줄바꿈 */
 .side-column-sub {
     position: absolute; top: 0;
     display: flex; flex-wrap: wrap; 
     align-content: flex-start; 
-    gap: 12px 18px; /* 단어 사이 간격 */
-    width: 600px;   /* 약 8~10단어가 한 줄에 들어가는 너비 */
+    gap: 12px 18px;
+    width: 600px;   
+    max-height: 60vh;
+    overflow-y: auto;
     padding-top: 15px;
     border-top: 1.5pt solid red;
     pointer-events: auto;
+    scrollbar-width: none;
 }
+.side-column-sub::-webkit-scrollbar { display: none; }
 
 .side-item-pink {
     font-size: 15px; font-weight: 800; line-height: 1.5;
@@ -129,14 +149,12 @@ body.stop-scroll {
     padding-top: 15px; cursor: pointer;
     word-break: keep-all; transition: all 0.2s ease;
 }
-
 .side-item-pink:hover { color: #C71585; border-top-color: #C71585; }
-
 .side-item-red {
     font-size: 13px; font-weight: 800;
     color: red; cursor: default;
     word-break: keep-all; white-space: nowrap;
 }
 
-@media (max-width: 1200px) { .side-column-sub { width: 400px; } } /* 화면 작을 때 너비 조정 */
+@media (max-width: 1200px) { .side-column-sub { width: 400px; } }
 @media (max-width: 768px) { #side-panel { display: none; } }
