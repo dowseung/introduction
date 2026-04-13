@@ -74,19 +74,80 @@ function toggleColumnFilter(colIndex, element) {
     });
 }
 
+let currentZOffset = 0;
+const FARTHEST_Z = -5000; // 가장 먼 깊이
+const NEAREST_Z = 800;    /* 내 눈앞 거리 */
+const LOOP_RANGE = NEAREST_Z - FARTHEST_Z;
+
 function renderBatch() {
     const container = document.getElementById('stream-container');
     const winWidth = window.innerWidth;
-    [...uniqueWordsList].sort(() => Math.random() - 0.5).forEach(word => {
+    const winHeight = window.innerHeight;
+    container.innerHTML = ''; 
+
+    // 텍스트 밀도를 높이기 위해 중복해서 더 많이 생성 (선택 사항)
+    const displayList = [...uniqueWordsList, ...uniqueWordsList]; 
+
+    displayList.forEach((word, index) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'word-wrapper';
+        
+        // 1. 초기 위치를 전후좌우로 넓게 분산
+        const randomZ = Math.random() * LOOP_RANGE + FARTHEST_Z;
+        const randomX = (Math.random() - 0.5) * winWidth * 2.5; // 가로 범위 확대
+        const randomY = (Math.random() - 0.5) * winHeight * 2.5; // 세로 범위 확대
+        
+        wrapper.setAttribute('data-base-x', randomX);
+        wrapper.setAttribute('data-base-y', randomY);
+        wrapper.setAttribute('data-z', randomZ);
+        
+        // 초기 배치
+        wrapper.style.transform = `translate3d(${randomX}px, ${randomY}px, ${randomZ}px)`;
+        
         const item = document.createElement('div');
-        item.className = 'floating-text'; item.innerText = word;
-        const fontSize = Math.min(Math.max((winWidth * 0.015) + (wordCounts[word] - 1) * 8, 20), 110);
+        item.className = 'floating-text'; 
+        item.innerText = word;
+        
+        const fontSize = Math.min(Math.max((winWidth * 0.01) + (wordCounts[word] || 1) * 5, 15), 80);
         item.style.fontSize = `${fontSize}px`;
+        
         wrapper.onclick = (e) => { e.stopPropagation(); toggleInteraction(wrapper, word); };
-        wrapper.append(item); container.append(wrapper);
+        wrapper.append(item); 
+        container.append(wrapper);
     });
+
+    // 무한 스크롤 및 유영 로직
+    window.addEventListener('wheel', (e) => {
+        if (document.getElementById('active-panel') || document.getElementById('side-panel')) return;
+        e.preventDefault();
+
+        // 스크롤 방향에 따라 전진/후진
+        currentZOffset -= e.deltaY * 2.0; 
+
+        document.querySelectorAll('.word-wrapper').forEach(el => {
+            let baseZ = parseFloat(el.getAttribute('data-z'));
+            let x = el.getAttribute('data-base-x');
+            let y = el.getAttribute('data-base-y');
+            
+            // 현재 위치 계산
+            let actualZ = baseZ + currentZOffset;
+
+            // --- [핵심: 무한 루프 로직] ---
+            // 내 눈뒤(NEAREST_Z)로 넘어가면 다시 저 멀리(FARTHEST_Z)로 보냄
+            while (actualZ > NEAREST_Z) actualZ -= LOOP_RANGE;
+            while (actualZ < FARTHEST_Z) actualZ += LOOP_RANGE;
+            // ----------------------------
+
+            // 2. 가시성 및 투명도 처리
+            // 내 눈에 가까워질수록 선명하다가 사라짐
+            const distFromCamera = Math.abs(actualZ - 500);
+            const opacity = Math.max(0, 1 - distFromCamera / 2500);
+            
+            el.style.opacity = opacity;
+            el.style.pointerEvents = opacity > 0.3 ? 'auto' : 'none';
+            el.style.transform = `translate3d(${x}px, ${y}px, ${actualZ}px)`;
+        });
+    }, { passive: false });
 }
 
 function toggleInteraction(target, word) {
