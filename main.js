@@ -1,299 +1,126 @@
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8yqJU0ZGStIv7BKToWATo5oj6pooV8KBHz_CTPwbORSdT93aF59rqEO_ENXdmEkUxXL/pub?gid=403210794&single=true&output=csv';
+// 스프레드 시트 CSV 내보내기 URL (N열 제외 로직 포함)
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8yqJU0ZGStIv7BKToWATo5oj6pooV8KBHz_CTPwbORSdT93aF59rqEO_ENXdmEkUxXL/pub?gid=403210794&single=true&output=csv';
 
-let allRows = [], wordToSourceMap = {}, wordToBColumnMap = {}, wordToRowIndicesMap = {}, wordToColumnMap = {}, uniqueWordsList = [], wordCounts = {}, currentSelectedWrapper = null, currentFilterCol = null;
-
-const bigOverlay = document.getElementById('full-screen-overlay') || document.createElement('div');
-bigOverlay.id = 'full-screen-overlay';
-bigOverlay.innerHTML = `<div id="resizer-handle"></div><div id="overlay-content"><div id="big-text-display"></div></div>`;
-document.body.appendChild(bigOverlay);
-bigOverlay.querySelector('#resizer-handle').onclick = (e) => e.stopPropagation();
-
-async function init() {
+async function initSpreadsheetKeywords() {
     try {
-        const res = await fetch(`${SHEET_URL}&cachebuster=${new Date().getTime()}`);
-        const csvText = await res.text();
-        Papa.parse(csvText, { header: false, complete: (results) => {
-            allRows = results.data.slice(1);
-            processData(allRows); 
-            renderTopBar(results.data[0]); 
-            renderBatch();
-        }});
-    } catch (err) { console.error(err); }
-}
+        const response = await fetch(SHEET_CSV_URL);
+        const data = await response.text();
+        
+        // 1행 데이터 추출 (CSV의 첫 줄)
+        const rows = data.split('\n');
+        const firstRow = rows[0].split(',');
 
-function processData(rows) {
-    wordCounts = {}; wordToSourceMap = {}; wordToBColumnMap = {}; wordToRowIndicesMap = {}; wordToColumnMap = {};
-    rows.forEach((row, rowIndex) => {
-        for (let i = 1; i <= 12; i++) {
-            if (!row[i]) continue;
-            row[i].toString().split('\n').forEach(line => {
-                const word = line.trim();
-                if (!word) return;
-                wordCounts[word] = (wordCounts[word] || 0) + 1;
-                if (!wordToSourceMap[word]) wordToSourceMap[word] = new Set();
-                wordToSourceMap[word].add(row[0]);
-                if (!wordToBColumnMap[word]) wordToBColumnMap[word] = new Set();
-                if (row[1]) wordToBColumnMap[word].add(row[1]);
-                if (!wordToRowIndicesMap[word]) wordToRowIndicesMap[word] = new Set();
-                wordToRowIndicesMap[word].add(rowIndex);
-                if (!wordToColumnMap[word]) wordToColumnMap[word] = new Set();
-                wordToColumnMap[word].add(i);
-            });
-        }
-    });
-    uniqueWordsList = Object.keys(wordCounts).sort((a, b) => b.length - a.length);
-}
+        // N열(14번째 열, 인덱스 13) 제외하고 키워드 추출
+        const keywords = firstRow.filter((item, index) => index !== 13 && item.trim() !== "");
 
-function renderTopBar(header) {
-    const topBar = document.getElementById('top-bar');
-    for (let i = 1; i <= 12; i++) {
-        if (header[i]) {
-            const item = document.createElement('div');
-            item.className = 'top-bar-item';
-            item.innerText = header[i];
-            item.onclick = (e) => { e.stopPropagation(); if(currentSelectedWrapper) closeDetailOnly(); toggleColumnFilter(i, item); };
-            topBar.appendChild(item);
-        }
+        applyKeywordsToText(keywords);
+    } catch (error) {
+        console.error("스프레드 시트 로드 실패:", error);
     }
 }
 
-function toggleColumnFilter(colIndex, element) {
-    const container = document.getElementById('stream-container');
-    if (currentFilterCol === colIndex) { clearFilterState(); return; }
-    currentFilterCol = colIndex;
-    document.querySelectorAll('.top-bar-item').forEach(it => it.classList.remove('active-b', 'active-other'));
-    element.classList.add(colIndex === 1 ? 'active-b' : 'active-other');
-    container.classList.add('filtered');
-    document.querySelectorAll('.word-wrapper').forEach(wrapper => {
-        const word = wrapper.querySelector('.floating-text').innerText;
-        wrapper.classList.remove('highlight', 'highlight-blue');
-        if (wordToColumnMap[word]?.has(colIndex)) {
-            wrapper.classList.add('highlight');
-            if (colIndex === 1) wrapper.classList.add('highlight-blue');
-        }
-    });
-}
+function applyKeywordsToText(keywords) {
+    const textElement = document.querySelector('.intro-text');
+    if (!textElement) return;
 
-let currentZOffset = 0;
-const FARTHEST_Z = -5000; // 가장 먼 깊이
-const NEAREST_Z = 800;    /* 내 눈앞 거리 */
-const LOOP_RANGE = NEAREST_Z - FARTHEST_Z;
+    let content = textElement.innerHTML;
 
-function renderBatch() {
-    const container = document.getElementById('stream-container');
-    const winWidth = window.innerWidth;
-    const winHeight = window.innerHeight;
-    container.innerHTML = ''; 
-
-    // 텍스트 밀도를 높이기 위해 중복해서 더 많이 생성 (선택 사항)
-    const displayList = [...uniqueWordsList, ...uniqueWordsList]; 
-
-    displayList.forEach((word, index) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'word-wrapper';
-        
-        // 1. 초기 위치를 전후좌우로 넓게 분산
-        const randomZ = Math.random() * LOOP_RANGE + FARTHEST_Z;
-        const randomX = (Math.random() - 0.5) * winWidth * 2.5; // 가로 범위 확대
-        const randomY = (Math.random() - 0.5) * winHeight * 2.5; // 세로 범위 확대
-        
-        wrapper.setAttribute('data-base-x', randomX);
-        wrapper.setAttribute('data-base-y', randomY);
-        wrapper.setAttribute('data-z', randomZ);
-        
-        // 초기 배치
-        wrapper.style.transform = `translate3d(${randomX}px, ${randomY}px, ${randomZ}px)`;
-        
-        const item = document.createElement('div');
-        item.className = 'floating-text'; 
-        item.innerText = word;
-        
-        const fontSize = Math.min(Math.max((winWidth * 0.01) + (wordCounts[word] || 1) * 5, 15), 80);
-        item.style.fontSize = `${fontSize}px`;
-        
-        wrapper.onclick = (e) => { e.stopPropagation(); toggleInteraction(wrapper, word); };
-        wrapper.append(item); 
-        container.append(wrapper);
+    // 1. 키워드 치환 (정규식 사용)
+    keywords.forEach(keyword => {
+        if (keyword.trim() === "") return;
+        // 단어 주위에 이미 span이 쳐져 있지 않은 경우에만 치환 (중복 방지)
+        const regex = new RegExp(`(${keyword.trim()})`, 'g');
+        content = content.replace(regex, `<span class="keyword">$1</span>`);
     });
 
-    // 무한 스크롤 및 유영 로직
-    window.addEventListener('wheel', (e) => {
-        if (document.getElementById('active-panel') || document.getElementById('side-panel')) return;
-        e.preventDefault();
+    textElement.innerHTML = content;
 
-        // 스크롤 방향에 따라 전진/후진
-        currentZOffset -= e.deltaY * 2.0; 
-
-        document.querySelectorAll('.word-wrapper').forEach(el => {
-            let baseZ = parseFloat(el.getAttribute('data-z'));
-            let x = el.getAttribute('data-base-x');
-            let y = el.getAttribute('data-base-y');
-            
-            // 현재 위치 계산
-            let actualZ = baseZ + currentZOffset;
-
-            // --- [핵심: 무한 루프 로직] ---
-            // 내 눈뒤(NEAREST_Z)로 넘어가면 다시 저 멀리(FARTHEST_Z)로 보냄
-            while (actualZ > NEAREST_Z) actualZ -= LOOP_RANGE;
-            while (actualZ < FARTHEST_Z) actualZ += LOOP_RANGE;
-            // ----------------------------
-
-            // 2. 가시성 및 투명도 처리
-            // 내 눈에 가까워질수록 선명하다가 사라짐
-            const distFromCamera = Math.abs(actualZ - 500);
-            const opacity = Math.max(0, 1 - distFromCamera / 2500);
-            
-            el.style.opacity = opacity;
-            el.style.pointerEvents = opacity > 0.3 ? 'auto' : 'none';
-            el.style.transform = `translate3d(${x}px, ${y}px, ${actualZ}px)`;
+    // 2. 마우스 호버 이벤트 추가
+    const spanKeywords = document.querySelectorAll('.keyword');
+    spanKeywords.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            el.classList.add('highlight');
         });
-    }, { passive: false });
+        el.addEventListener('mouseleave', () => {
+            el.classList.remove('highlight');
+        });
+    });
+
+    // 텍스트 구조가 변했으므로 레이아웃 재계산
+    adjustFontSize();
 }
 
-function toggleInteraction(target, word) {
-    // 이미 선택된 상태라면 닫기
-    if (target && target.classList.contains('selected')) { 
-        closeDetailOnly(); 
-        return; 
+// 초기 실행 로직 수정
+window.addEventListener('load', () => {
+    initSpreadsheetKeywords(); // 키워드 먼저 적용
+    if (document.fonts) {
+        document.fonts.ready.then(adjustFontSize);
     }
+});
+
+window.addEventListener('resize', () => {
+    requestAnimationFrame(adjustFontSize);
+});
+
+function adjustFontSize() {
+    const container = document.getElementById('landing-page');
+    const text = document.querySelector('.intro-text');
+    if (!text || !container) return;
+
+    const style = window.getComputedStyle(container);
+    const paddingLeft = parseFloat(style.paddingLeft);
+    const paddingRight = parseFloat(style.paddingRight);
+    // 1. 실제 사용 가능한 영역 (상하좌우 여유분 제외)
+    const maxWidth = (container.clientWidth - paddingLeft - paddingRight) * 0.98;
+    const maxHeight = container.clientHeight * 0.95;
+
+    // 2. 초기 폰트 사이즈 설정
+    // 행간이 넓어졌으므로 세로 비중(sizeByHeight)을 0.18에서 0.15로 하향 조정하여 
+    // 처음부터 잘리는 현상을 방지합니다.
+    const sizeByWidth = window.innerWidth * 0.12; 
+    const sizeByHeight = window.innerHeight * 0.15; 
     
-    // 기존에 열려있는 상세창/패널 모두 닫기
-    closeDetailOnly();
-    
-    // 열 구분 없이 모든 단어에 대해 기존 상세 로직 실행
-    executeOriginalLogic(target, word); 
-}
+    let fontSize = Math.min(sizeByWidth, sizeByHeight);
+    text.style.fontSize = fontSize + "px";
 
+    // 3. 실시간 보정
+    let currentHeight = text.offsetHeight;
+    let currentWidth = text.offsetWidth;
 
-
-function executeOriginalLogic(target, word) {
-    if (target) target.classList.add('selected');
-    document.getElementById('stream-container').classList.add('dimmed');
-    currentSelectedWrapper = target;
-    const panel = document.createElement('div');
-    panel.className = 'node-container'; panel.id = 'active-panel';
-    panel.onclick = (e) => e.stopPropagation();
-    if (wordToSourceMap[word]) {
-        wordToSourceMap[word].forEach(text => {
-            const node = document.createElement('div');
-            node.className = 'node-text';
-            node.innerHTML = highlightKeywords(text);
-            panel.appendChild(node);
-        });
+    // 너비나 높이가 경계선에 닿으면 즉시 비율에 맞춰 꽉 맞춤
+    if (currentHeight > maxHeight || currentWidth > maxWidth) {
+        const ratioH = maxHeight / currentHeight;
+        const ratioW = maxWidth / currentWidth;
+        
+        // 더 좁은 쪽에 맞춰 폰트 크기 결정
+        fontSize = fontSize * Math.min(ratioH, ratioW);
+        text.style.fontSize = fontSize + "px";
+    } 
+    // 창이 커졌을 때 글자가 너무 작게 남지 않도록 다시 키워주는 로직
+    else {
+        const ratioH = maxHeight / currentHeight;
+        const ratioW = maxWidth / currentWidth;
+        const potentialIncrease = Math.min(ratioH, ratioW);
+        
+        // 95% 이상 차지하지 않을 때만 크기를 키움
+        if (potentialIncrease > 1.05) {
+            fontSize = fontSize * potentialIncrease * 0.98;
+            text.style.fontSize = fontSize + "px";
+        }
     }
-    document.body.appendChild(panel);
-    updatePanelPosition();
+
+    text.style.opacity = "1";
 }
 
-function highlightKeywords(text) {
-    let html = text;
-    uniqueWordsList.forEach(w => {
-        const regex = new RegExp(`(?<!<[^>]*)${w}(?![^<]*>)`, 'g');
-        html = html.replace(regex, `<span class="keyword-link" onclick="handleKeywordClick(event, this, '${w}')"><span class="inner-text">${w}</span></span>`);
-    });
-    return html;
+// 리사이즈 시 실시간 반영
+window.addEventListener('resize', () => {
+    requestAnimationFrame(adjustFontSize);
+});
+
+// 초기화
+window.addEventListener('load', adjustFontSize);
+if (document.fonts) {
+    document.fonts.ready.then(adjustFontSize);
 }
 
-function handleKeywordClick(e, el, word) {
-    e.stopPropagation();
-    const isActive = el.classList.contains('active-keyword');
-    document.querySelectorAll('.keyword-link').forEach(l => l.classList.remove('active-keyword'));
-    if (isActive) { const side = document.getElementById('side-panel'); if (side) side.remove(); } 
-    else { el.classList.add('active-keyword'); showSidePanel(word); }
-}
-
-function showSidePanel(word) {
-    const existing = document.getElementById('side-panel'); if (existing) existing.remove();
-    const side = document.createElement('div'); side.id = 'side-panel';
-    side.onclick = (e) => e.stopPropagation();
-    const mainCol = document.createElement('div'); mainCol.className = 'side-column-main';
-    const subCol = document.createElement('div'); subCol.className = 'side-column-sub'; subCol.style.display = 'none';
-    wordToBColumnMap[word]?.forEach(text => {
-        const container = document.createElement('div'); container.className = 'side-item-pink';
-        const label = document.createElement('span'); label.innerText = text;
-        label.onclick = (e) => { e.stopPropagation(); handlePinkClick(container, word, text, subCol); };
-        const icon = document.createElement('div'); icon.className = 'side-icon-graphic';
-        icon.innerHTML = '<span></span><span></span><span></span>';
-        icon.onclick = (e) => {
-            e.stopPropagation();
-            const isOpened = icon.classList.contains('active-rotate');
-            document.querySelectorAll('.side-icon-graphic').forEach(i => i.classList.remove('active-rotate'));
-            if (isOpened) { bigOverlay.style.display = 'none'; } 
-            else { icon.classList.add('active-rotate');
-                const idx = Array.from(wordToRowIndicesMap[word]).find(i => allRows[i][1] === text);
-                if (idx !== undefined) { document.getElementById('big-text-display').innerText = allRows[idx][0]; bigOverlay.style.display = 'flex'; }
-            }
-        };
-        container.append(label, icon); mainCol.appendChild(container);
-    });
-    side.append(mainCol, subCol); document.body.appendChild(side); updateSidePanelLayout(side);
-}
-
-function handlePinkClick(el, word, bText, sub) {
-    const isActive = el.classList.contains('active-pink');
-    document.querySelectorAll('.side-item-pink').forEach(i => i.classList.remove('active-pink'));
-    sub.innerHTML = ''; sub.style.display = 'none';
-    if (!isActive) {
-        el.classList.add('active-pink'); sub.style.display = 'flex';
-        const related = new Set();
-        wordToRowIndicesMap[word].forEach(idx => { if(allRows[idx][1] === bText) { for(let i=1; i<=12; i++) if(allRows[idx][i]) allRows[idx][i].split('\n').forEach(v => related.add(v.trim())); } });
-        related.forEach(v => {
-            const r = document.createElement('div'); r.className = 'side-item-red'; r.innerText = v;
-            r.onclick = (e) => { e.stopPropagation(); window.open(`https://www.google.com/search?q=${v}`); };
-            sub.appendChild(r);
-        });
-    }
-}
-
-function resetAll() {
-    const tm = document.getElementById('timeline-mode');
-    if (tm) { tm.remove(); document.getElementById('stream-container').classList.remove('dimmed'); return; }
-    if (bigOverlay.style.display === 'flex') { bigOverlay.style.display = 'none'; document.querySelectorAll('.side-icon-graphic').forEach(i => i.classList.remove('active-rotate')); return; }
-    if (currentSelectedWrapper || document.getElementById('active-panel')) { closeDetailOnly(); return; }
-    clearFilterState();
-}
-
-function closeDetailOnly() {
-    document.getElementById('stream-container').classList.remove('dimmed');
-    document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('selected'));
-    document.querySelectorAll('.node-container, #side-panel, #timeline-mode').forEach(n => n.remove());
-    bigOverlay.style.display = 'none';
-    currentSelectedWrapper = null;
-}
-
-function clearFilterState() {
-    currentFilterCol = null;
-    document.getElementById('stream-container').classList.remove('filtered');
-    document.querySelectorAll('.top-bar-item').forEach(it => it.classList.remove('active-b', 'active-other'));
-    document.querySelectorAll('.word-wrapper').forEach(w => w.classList.remove('highlight', 'highlight-blue'));
-}
-
-function updatePanelPosition() {
-    const panel = document.getElementById('active-panel');
-    if (!panel) return;
-    const winWidth = window.innerWidth;
-    const panelW = Math.min(450, winWidth * 0.9);
-    panel.style.top = '95px';
-    if (winWidth > 768) {
-        if (currentSelectedWrapper) {
-            const rect = currentSelectedWrapper.getBoundingClientRect();
-            let posX = (rect.left + rect.width / 2 < winWidth / 2) ? rect.right + 40 : rect.left - panelW - 40;
-            panel.style.left = `${Math.max(20, Math.min(posX, winWidth - panelW - 20))}px`;
-            panel.style.transform = 'none';
-        } else { panel.style.left = '50%'; panel.style.transform = 'translateX(-50%)'; }
-    } else { panel.style.left = '5%'; panel.style.top = '90px'; panel.style.transform = 'none'; }
-}
-
-function updateSidePanelLayout(side) {
-    const winWidth = window.innerWidth;
-    const activePanel = document.getElementById('active-panel');
-    if (activePanel && winWidth > 768) {
-        const rect = activePanel.getBoundingClientRect(); side.style.top = '120px';
-        if (rect.left < winWidth / 2) { side.style.right = '40px'; side.style.left = 'auto'; side.style.flexDirection = 'row-reverse'; } 
-        else { side.style.left = '40px'; side.style.right = 'auto'; side.style.flexDirection = 'row'; }
-    }
-}
-
-document.addEventListener('click', resetAll);
-window.addEventListener('resize', () => { if(currentSelectedWrapper) updatePanelPosition(); });
-init();
+adjustFontSize();

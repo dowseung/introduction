@@ -1,212 +1,58 @@
-/* --- 1. 전역 설정: 가로 스크롤 차단 및 단어 단위 줄바꿈 --- */
-* { 
-    box-sizing: border-box; 
-    word-break: keep-all; 
-    overflow-wrap: break-word;
+@font-face {
+    font-family: 'Asta Sans';
+    src: url('./fonts/AstaSans-Regular.woff2') format('woff2');
 }
 
 body, html {
-    margin: 0; padding: 0; 
-    width: 100%; height: 100%;
-    overflow-x: hidden; /* 좌우 흔들림 방지 */
-    background-color: #ffffff;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-weight: 800; color: #000000;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #fff;
+    overflow: hidden;
+    /* 영문/숫자는 Helvetica Neue, 한글은 Asta Sans */
+    font-family: "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* --- 2. 상단 바 --- */
-#top-bar {
-    position: fixed; top: 0; left: 0; width: 100%; height: 80px;
-    background-color: #ffffff; display: flex; align-items: center;
-    justify-content: space-between; padding: 0 min(60px, 5%);
-    z-index: 2000; border-bottom: 1.5pt solid #8a8a8a;
-    overflow-x: auto; scrollbar-width: none;
-}
-.top-bar-item { 
-    font-size: clamp(16px, 2.2vw, 32px); cursor: pointer; 
-    white-space: nowrap; margin-right: 25px; transition: color 0.3s;
-}
-.top-bar-item.active-b { color: blue !important; }
-.top-bar-item.active-other { color: #A020F0 !important; }
-
-/* --- 3. 메인 스트림: 3D 공간 설정 --- */
-#stream-container {
-    display: flex; 
-    flex-wrap: wrap; 
+#landing-page {
     width: 100vw;
     height: 100vh;
-    position: fixed; 
-    top: 0; left: 0;
-    perspective: 1000px; /* 시야각을 넓혀 더 많은 텍스트가 한눈에 들어오게 함 */
-    perspective-origin: center center;
-    transform-style: preserve-3d;
-    pointer-events: none; 
-}
-
-.word-wrapper {
-    position: absolute; /* 겹침을 허용하여 더 밀도 있게 배치 */
-    top: 50%; left: 50%; /* 중앙 기준 배치 */
-    pointer-events: auto; 
-    cursor: pointer; 
-    transform-style: preserve-3d;
-    will-change: transform, opacity; /* 애니메이션 성능 최적화 */
-    transition: opacity 0.3s ease;
-}
-
-/* 마우스 오버 시 움직임 효과 삭제 */
-.word-wrapper:hover {
-    transform: none; /* 움직임 없음 */
-}
-
-/* 텍스트 옆으로 뻗어나가던 가로선(::after) 제거 */
-.word-wrapper::after {
-    display: none;
-}
-
-/* 아래는 기존 유지 */
-.floating-text { 
-    line-height: 1.4; 
-    letter-spacing: -0.02em; 
-    word-break: keep-all; 
-    overflow-wrap: break-word;
-    transition: color 0.4s ease;
-}
-
-/* 투명도 로직: 클릭한 것 50%, 나머지 10% */
-#stream-container.filtered .word-wrapper:not(.highlight) { opacity: 0.1 !important; pointer-events: none; }
-#stream-container.dimmed .word-wrapper { opacity: 0.1; pointer-events: none; }
-#stream-container.dimmed .word-wrapper.selected { 
-    opacity: 0.5 !important; 
-    pointer-events: auto; z-index: 1001; 
-}
-
-/* 하이라이트 색상 */
-.word-wrapper.highlight { border-top-color: #A020F0 !important; }
-.word-wrapper.highlight .floating-text { color: #A020F0 !important; }
-.word-wrapper.highlight::after { background-color: #A020F0 !important; }
-.word-wrapper.highlight-blue { border-top-color: blue !important; }
-.word-wrapper.highlight-blue .floating-text { color: blue !important; }
-.word-wrapper.highlight-blue::after { background-color: blue !important; }
-
-/* --- 4. 하단 거대 텍스트 창 (50% 고정) --- */
-#full-screen-overlay {
-    position: fixed; bottom: 0; left: 0; width: 100%;
-    height: 50vh; background-color: #ffffff; z-index: 3000; 
-    border-top: 2pt solid #000000; display: none; flex-direction: column;
-}
-#resizer-handle {
-    width: 100%; height: 15px; background-color: #ffffff; 
-    border-bottom: 1px solid #000; display: flex; justify-content: center; align-items: center;
-}
-#resizer-handle::after { content: ""; width: 40px; height: 2px; background: #000; }
-#overlay-content { width: 100%; flex-grow: 1; overflow-y: auto; padding: 40px min(60px, 8%); }
-#big-text-display { font-size: clamp(24px, 5vw, 120px); font-weight: 900; line-height: 1.15; text-align: center; }
-
-/* --- 5. 상세 패널 및 J열 타임라인 --- */
-.node-container { 
-    position: fixed; z-index: 1002; width: min(450px, 90vw); 
-    max-height: 80vh; overflow-y: auto; scrollbar-width: none; 
-}
-.node-container::-webkit-scrollbar { display: none; }
-.node-text { border-top: 1.5pt solid #000; padding-top: 20px; font-size: 18px; line-height: 1.6; margin-bottom: 40px; }
-
-
-/* 키워드 및 사이드 패널 */
-.keyword-link { cursor: pointer; color: inherit; }
-.keyword-link:hover .inner-text, .keyword-link.active-keyword .inner-text { color: #00ff00 !important; }
-#side-panel { position: fixed; z-index: 1005; display: flex; gap: 20px; pointer-events: none; }
-/* --- 핑크색 텍스트가 담기는 메인 컬럼 수정 --- */
-.side-column-main {
-    width: min(300px, 60vw);
-    pointer-events: auto;
     display: flex;
-    flex-direction: column;
-    gap: 20px;
-    
-    /* [추가] 최대 높이 설정 및 스크롤 활성화 */
-    max-height: 65vh;      /* 빨간색 패널과 동일하게 화면 높이의 65%로 제한 */
-    overflow-y: auto;      /* 내용이 길어지면 세로 스크롤 생성 */
-    scrollbar-width: none;  /* 스크롤바 숨기기 (Firefox) */
-    padding-right: 5px;    /* 스크롤 시 글자가 잘리지 않도록 미세한 여백 */
+    align-items: flex-start; /* 세로 중앙 */
+    justify-content: flex-start; /* 왼쪽 정렬 고정 */
+    padding-top: 4vh;
+    padding-left: 60px;           /* 왼쪽 여백 확보 (숫자를 키울수록 더 떨어짐) */
+    padding-right: 40px;          /* 오른쪽 여백도 약간 확보 */
+    box-sizing: border-box;
 }
 
-/* 크롬, 사파리에서 핑크색 컬럼 스크롤바 숨기기 */
-.side-column-main::-webkit-scrollbar {
-    display: none;
-}
-.side-column-sub {
-    width: min(500px, 80vw);
-    
-    /* [핵심 수정] 화면 높이의 60%까지는 자유롭게 늘어나다가, 그 이후부터 스크롤 발생 */
-    max-height: 60vh; 
-    overflow-y: auto;
-    
-    /* 스크롤바 숨기기 (기능은 작동함) */
-    scrollbar-width: none; 
-    -ms-overflow-style: none; /* IE/Edge */
-    
-    pointer-events: auto;
-    border-top: 1.5pt solid red;
-    padding: 20px 10px; /* 상단 여백을 조금 더 줘서 시원하게 */
-    
-    display: flex;
-    flex-wrap: wrap;
-    column-gap: 18px;    /* 가로 간격 */
-    row-gap: 20px;       /* 세로 간격 (요청하신 대로 더 넓고 일정하게) */
-    align-content: flex-start;
-}
-
-/* 빨간색 텍스트 컨테이너 */
-.side-column-sub {
-    width: min(500px, 80vw);
-    max-height: 65vh;      /* 화면 높이 65%까지 늘어난 후 스크롤 발생 */
-    overflow-y: auto; 
-    scrollbar-width: none; /* 스크롤바 숨김 */
-    display: flex;
-    flex-wrap: wrap;
-    column-gap: 18px;      /* 가로 간격 */
-    row-gap: 20px;         /* 세로 줄 간격 (일정하게 유지) */
-    padding: 20px 10px;
-    border-top: 1.5pt solid red;
-}
-
-.side-column-sub::-webkit-scrollbar { display: none; }
-.side-item-pink {
-    color: #FF007F;
-    border-top: 1.5pt solid #FF007F;
-    padding-top: 10px;
-    font-size: 15px;
-    display: flex;
-    justify-content: space-between;
-    cursor: pointer;
-    flex-shrink: 0;        /* 스크롤 시 아이템 크기가 찌그러지지 않게 고정 */
-    line-height: 1.4;      /* 핑크색 텍스트도 2줄 이상일 때 대비해 행간 확보 */
-}
-.side-icon-graphic { width: 20px; height: 14px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.3s; }
-.side-icon-graphic.active-rotate { transform: rotate(90deg); }
-.side-icon-graphic span { height: 2px; background: #FF007F; width: 100%; }
-.side-item-red {
-    color: red;
-    font-size: 13px;
-    cursor: pointer;
-    display: block;
-    width: fit-content;
-    line-height: 1.0;
+.intro-text {
     margin: 0;
-    padding: 2px 0;
-    transition: opacity 0.2s; /* 부드러운 효과를 위해 유지 */
+    text-align: left;
+    word-break: keep-all;
+    hyphens: none;
+    line-height: 1.4;
+    letter-spacing: -0.03em;
+    font-weight: 900;
+    color: #000;
+    
+    display: block;
+    width: 100%; /* 부모 패딩 안에서 100% */
+    
+    /* 실시간 변화를 위해 transition은 제거하거나 아주 짧게 설정 */
+    transition: none; 
+    opacity: 1;
 }
 
-/* [추가] 마우스 커서를 올렸을 때 밑줄 효과 */
-.side-item-red:hover {
-    text-decoration: underline;
-    text-underline-offset: 3px; /* 밑줄과 글자 사이 간격을 살짝 띄움 */
-    opacity: 0.8;               /* 살짝 투명해지며 클릭 가능한 느낌 강조 */
+.keyword {
+    display: inline;
+    transition: color 0.2s ease;
+    cursor: pointer;
+    font-weight: inherit;
 }
 
-@media (max-width: 768px) {
-    #top-bar { height: 60px; padding: 0 5%; }
-    #stream-container { padding-top: 100px; gap: 30px; }
-    .node-container { left: 5% !important; width: 90%; top: 90px !important; }
-    #side-panel { flex-direction: column !important; bottom: 40px; left: 5% !important; top: auto !important; }
+.keyword.highlight {
+    color: #00FF00 !important;
+    background-color: transparent;
 }
