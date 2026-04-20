@@ -8,9 +8,8 @@ body, html {
     padding: 0;
     width: 100%;
     height: 100%;
-    background-color: #fff;
+    background-color: #ebebeb;
     overflow: hidden;
-    /* 영문/숫자는 Helvetica Neue, 한글은 Asta Sans */
     font-family: "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
     -webkit-font-smoothing: antialiased;
 }
@@ -19,30 +18,30 @@ body, html {
     width: 100vw;
     height: 100vh;
     display: flex;
-    align-items: flex-start; /* 세로 중앙 */
-    justify-content: flex-start; /* 왼쪽 정렬 고정 */
+    align-items: flex-start;
+    justify-content: flex-start;
     padding-top: 30px;
-    padding-left: 55px;           /* 왼쪽 여백 확보 (숫자를 키울수록 더 떨어짐) */
-    padding-right: 40px;          /* 오른쪽 여백도 약간 확보 */
+    padding-left: 55px;
+    padding-right: 40px;
     box-sizing: border-box;
 }
 
 .intro-text {
-    margin: 0;
-    text-align: left;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-indent: 0 !important;
+    list-style: none;
+    white-space: pre-wrap;
     word-break: keep-all;
-    hyphens: none;
-    line-height: 1.4;
-    letter-spacing: -0.03em;
-    font-weight: 900;
-    color: #000;
-    
     display: block;
-    width: 100%; /* 부모 패딩 안에서 100% */
-    
-    /* 실시간 변화를 위해 transition은 제거하거나 아주 짧게 설정 */
-    transition: none; 
-    opacity: 1;
+    width: 100%;
+    opacity: 0;
+    visibility: visible;
+    font-weight: 600;
+}
+
+.intro-text.typing-complete {
+    border-right: none;
 }
 
 .keyword {
@@ -54,5 +53,8 @@ body, html {
 
 .keyword.highlight {
     color: #00FF00 !important;
-    background-color: transparent;
+}
+
+.keyword.first-keyword.highlight {
+    color: #FF0000 !important;
 }

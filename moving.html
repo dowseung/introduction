@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Designer Map</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: #ebebeb;
+            font-family: sans-serif;
+        }
+        #canvas {
+            width: 100vw; height: 100vh; position: relative;
+        }
+        .word {
+            position: absolute;
+            white-space: nowrap;
+            font-weight: 600;
+            color: #000;
+            cursor: grab;
+            user-select: none;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            /* 등장 모션용 — 퍼진 뒤 JS로 제거 */
+            transition: opacity 0.25s ease,
+                        left 0.35s cubic-bezier(0.15, 1, 0.3, 1),
+                        top  0.35s cubic-bezier(0.15, 1, 0.3, 1);
+        }
+        .word.dragging {
+            cursor: grabbing;
+            transition: none;
+        }
+        .word.snapping {
+            transition: left 0.25s cubic-bezier(0.15, 1, 0.3, 1),
+                        top  0.25s cubic-bezier(0.15, 1, 0.3, 1);
+        }
+        #back-btn {
+            position: fixed;
+            top: 28px;
+            left: 28px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <svg id="back-btn" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"
+         onclick="window.location.href='index.html'">
+        <line x1="32" y1="20" x2="8" y2="20" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+        <polyline points="18,10 8,20 18,30" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+
+    <div id="canvas"></div>
+
+    <script>
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8yqJU0ZGStIv7BKToWATo5oj6pooV8KBHz_CTPwbORSdT93aF59rqEO_ENXdmEkUxXL/pub?gid=403210794&single=true&output=csv';
+
+        let nodes = [];
+        let baseW = 0, baseH = 0;
+        let baseFontSize = 18;
+        let spreadDone = false;
+
+        function parseCSV(text) {
+            const rows = [];
+            let row = [], cell = '', inQ = false;
+            for (let i = 0; i < text.length; i++) {
+                const c = text[i];
+                if (c === '"') { inQ = !inQ; }
+                else if (c === ',' && !inQ) { row.push(cell.trim()); cell = ''; }
+                else if ((c === '\n' || c === '\r') && !inQ) {
+                    if (cell !== '' || row.length) { row.push(cell.trim()); rows.push(row); }
+                    row = []; cell = '';
+                }
+                else { cell += c; }
+            }
+            if (row.length) { row.push(cell.trim()); rows.push(row); }
+            return rows;
+        }
+
+        function similarity(a, b) {
+            const s = new Set(a.meta);
+            return b.meta.reduce((n, v) => n + (s.has(v) && v !== '' ? 1 : 0), 0);
+        }
+
+        async function init() {
+            try {
+                const res  = await fetch(SHEET_CSV_URL);
+                const csv  = await res.text();
+                const rows = parseCSV(csv);
+                const cx   = window.innerWidth  / 2;
+                const cy   = window.innerHeight / 2;
+
+                rows.slice(1).forEach(row => {
+                    const bCell = row[1] || '';
+                    if (!bCell) return;
+                    const bWords = bCell.split(/\r?\n/).map(w => w.trim()).filter(w => w);
+                    const meta   = row.slice(1, 12).filter(v => v !== '');
+                    bWords.forEach(word => {
+                        nodes.push({ text: word, meta,
+                                     x: cx, y: cy,
+                                     nx: 0.5, ny: 0.5,
+                                     tx: cx, ty: cy,
+                                     w: 0, h: 0, el: null });
+                    });
+                });
+
+                buildDOM();
+                computeFontSize();
+                measureNodes();
+                computeTargetPositions();
+                doSpread();
+
+            } catch (e) { console.error(e); }
+        }
+
+        function buildDOM() {
+            const canvas = document.getElementById('canvas');
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2;
+            nodes.forEach(node => {
+                const div = document.createElement('div');
+                div.className  = 'word';
+                div.innerText  = node.text;
+                div.style.fontSize = baseFontSize + 'px';
+                div.style.left = cx + 'px';
+                div.style.top  = cy + 'px';
+                canvas.appendChild(div);
+                node.el = div;
+                attachDrag(node);
+            });
+        }
+
+        function attachDrag(node) {
+            const el = node.el;
+            let startX, startY, startLeft, startTop;
+
+            function onDown(e) {
+                if (!spreadDone) return;
+                e.preventDefault();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                startX    = clientX;
+                startY    = clientY;
+                startLeft = parseFloat(el.style.left);
+                startTop  = parseFloat(el.style.top);
+
+                el.classList.add('dragging');
+                el.classList.remove('snapping');
+
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup',   onUp);
+                document.addEventListener('touchmove', onMove, { passive: false });
+                document.addEventListener('touchend',  onUp);
+            }
+
+            function onMove(e) {
+                e.preventDefault();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                el.style.left = (startLeft + clientX - startX) + 'px';
+                el.style.top  = (startTop  + clientY - startY) + 'px';
+            }
+
+            function onUp() {
+                el.classList.remove('dragging');
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup',   onUp);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend',  onUp);
+
+                /* 손 떼는 즉시 복귀 */
+                el.classList.add('snapping');
+                el.style.left = node.tx + 'px';
+                el.style.top  = node.ty + 'px';
+                setTimeout(() => el.classList.remove('snapping'), 300);
+            }
+
+            el.addEventListener('mousedown',  onDown);
+            el.addEventListener('touchstart', onDown, { passive: false });
+        }
+
+        function computeFontSize() {
+            const W = window.innerWidth;
+            const H = window.innerHeight;
+            const screenArea = W * H;
+
+            const tester = document.createElement('div');
+            tester.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font-weight:600;font-size:18px;font-family:sans-serif;';
+            document.body.appendChild(tester);
+
+            let totalArea = 0;
+            nodes.forEach(n => {
+                tester.innerText = n.text;
+                totalArea += (tester.offsetWidth + 44) * (tester.offsetHeight + 28);
+            });
+            document.body.removeChild(tester);
+
+            const targetFill = 0.70;
+            const scale = Math.sqrt((screenArea * targetFill) / totalArea);
+            baseFontSize = Math.max(12, Math.min(72, Math.round(18 * scale)));
+
+            nodes.forEach(n => {
+                if (n.el) n.el.style.fontSize = baseFontSize + 'px';
+            });
+        }
+
+        function measureNodes() {
+            nodes.forEach(node => {
+                node.w = node.el.offsetWidth  + 20;
+                node.h = node.el.offsetHeight + 14;
+            });
+        }
+
+        function computeTargetPositions() {
+            const W  = window.innerWidth;
+            const H  = window.innerHeight;
+            const cx = W / 2;
+            const cy = H / 2;
+            const N  = nodes.length;
+
+            baseW = W;
+            baseH = H;
+
+            const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+            const maxR = Math.min(W * 0.46, H * 0.46);
+            nodes.forEach((n, i) => {
+                const r = maxR * Math.sqrt((i + 0.5) / N);
+                const a = i * goldenAngle;
+                const rNoise = r * (0.85 + Math.random() * 0.5);
+                const aNoise = a + (Math.random() - 0.5) * 0.8;
+                n.x = cx + Math.cos(aNoise) * rNoise;
+                n.y = cy + Math.sin(aNoise) * rNoise;
+            });
+
+            for (let iter = 0; iter < 1200; iter++) {
+                const progress = iter / 1200;
+                const repelStr = 1.5 * (1 - progress * 0.5);
+
+                nodes.forEach(n => {
+                    const dx = n.x - cx;
+                    const dy = n.y - cy;
+                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                    const repel = Math.max(0, 1 - dist / (maxR * 0.95)) * repelStr;
+                    n.x += (dx / dist) * repel;
+                    n.y += (dy / dist) * repel;
+                });
+
+                for (let i = 0; i < N; i++) {
+                    for (let j = i + 1; j < N; j++) {
+                        const a = nodes[i], b = nodes[j];
+                        const dx = b.x - a.x;
+                        const dy = b.y - a.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+
+                        const sim = similarity(a, b);
+                        if (sim > 0) {
+                            const f = sim * 0.10;
+                            a.x += (dx / dist) * f;
+                            a.y += (dy / dist) * f;
+                            b.x -= (dx / dist) * f;
+                            b.y -= (dy / dist) * f;
+                        }
+
+                        const mw = (a.w + b.w) / 2;
+                        const mh = (a.h + b.h) / 2;
+                        const ox = mw - Math.abs(dx);
+                        const oy = mh - Math.abs(dy);
+                        if (ox > 0 && oy > 0) {
+                            if (ox < oy) {
+                                const push = (dx >= 0 ? 1 : -1) * ox * 0.5;
+                                a.x -= push; b.x += push;
+                            } else {
+                                const push = (dy >= 0 ? 1 : -1) * oy * 0.5;
+                                a.y -= push; b.y += push;
+                            }
+                        }
+                    }
+                }
+            }
+
+            let hasOverlap = true;
+            let safetyCount = 0;
+            while (hasOverlap && safetyCount < 200) {
+                hasOverlap = false;
+                safetyCount++;
+                for (let i = 0; i < N; i++) {
+                    for (let j = i + 1; j < N; j++) {
+                        const a = nodes[i], b = nodes[j];
+                        const dx = b.x - a.x;
+                        const dy = b.y - a.y;
+                        const mw = (a.w + b.w) / 2;
+                        const mh = (a.h + b.h) / 2;
+                        const ox = mw - Math.abs(dx);
+                        const oy = mh - Math.abs(dy);
+                        if (ox > 0 && oy > 0) {
+                            hasOverlap = true;
+                            if (ox < oy) {
+                                const push = (dx >= 0 ? 1 : -1) * (ox * 0.5 + 1);
+                                a.x -= push; b.x += push;
+                            } else {
+                                const push = (dy >= 0 ? 1 : -1) * (oy * 0.5 + 1);
+                                a.y -= push; b.y += push;
+                            }
+                        }
+                    }
+                }
+            }
+
+            const mg = 50;
+            nodes.forEach(n => {
+                n.tx = Math.max(mg, Math.min(W - mg, n.x));
+                n.ty = Math.max(mg, Math.min(H - mg, n.y));
+                n.nx = n.tx / W;
+                n.ny = n.ty / H;
+            });
+        }
+
+        function doSpread() {
+            /* 한 프레임 뒤 실행해야 중심→목표 transition이 브라우저에 잡힘 */
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    spreadDone = true;
+                    nodes.forEach(node => {
+                        node.el.style.opacity = '1';
+                        node.el.style.left    = node.tx + 'px';
+                        node.el.style.top     = node.ty + 'px';
+                    });
+                    /* 등장 완료 후 transition 제거 — 이후 드래그/리사이즈 즉각 반응 */
+                    setTimeout(() => {
+                        nodes.forEach(node => {
+                            node.el.style.transition = 'none';
+                        });
+                    }, 400);
+                });
+            });
+        }
+
+        function onResize() {
+            if (!spreadDone) return;
+            const W = window.innerWidth;
+            const H = window.innerHeight;
+            const scale = Math.sqrt((W * H) / (baseW * baseH));
+            const newFont = Math.max(10, Math.round(baseFontSize * scale));
+
+            nodes.forEach(node => {
+                node.el.style.transition = 'none';
+                node.el.style.fontSize   = newFont + 'px';
+                node.el.style.left       = (node.nx * W) + 'px';
+                node.el.style.top        = (node.ny * H) + 'px';
+                node.tx = node.nx * W;
+                node.ty = node.ny * H;
+            });
+        }
+
+        window.addEventListener('resize', onResize);
+        init();
+    </script>
+</body>
+</html>
