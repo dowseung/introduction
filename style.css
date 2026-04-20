@@ -21,8 +21,8 @@ body, html {
     display: flex;
     align-items: flex-start; /* 세로 중앙 */
     justify-content: flex-start; /* 왼쪽 정렬 고정 */
-    padding-top: 4vh;
-    padding-left: 60px;           /* 왼쪽 여백 확보 (숫자를 키울수록 더 떨어짐) */
+    padding-top: 30px;
+    padding-left: 55px;           /* 왼쪽 여백 확보 (숫자를 키울수록 더 떨어짐) */
     padding-right: 40px;          /* 오른쪽 여백도 약간 확보 */
     box-sizing: border-box;
 }
