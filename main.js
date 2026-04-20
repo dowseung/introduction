@@ -24,7 +24,7 @@ function adjustFontSize() {
     lastHeight = container.clientHeight;
     const style = window.getComputedStyle(container);
     const maxWidth = container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    const maxHeight = container.clientHeight - 120;
+    const maxHeight = container.clientHeight - 230;
     const baseFontSize = 100;
     const v = document.createElement('div');
     v.style.cssText = `position: absolute; visibility: hidden; pointer-events: none; width: ${maxWidth}px; font-size: ${baseFontSize}px; line-height: ${style.lineHeight}; font-family: ${style.fontFamily}; font-weight: ${style.fontWeight}; white-space: pre-wrap; word-break: keep-all;`;
@@ -76,6 +76,11 @@ function applyKeywordsToText(keywords, targetLinkWord) {
             el.style.cursor = 'pointer';
             el.addEventListener('click', () => { window.location.href = 'school.html'; });
         }
+        /* 소개글 → bio.html */
+if (el.textContent.trim() === '소개글') {
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => { window.location.href = 'bio.html'; });
+}
     });
 }
 

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Bio</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: #ebebeb;
+            font-family: "Helvetica Neue", "Helvetica", sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #back-btn {
+            position: fixed;
+            top: 28px; left: 28px;
+            width: 40px; height: 40px;
+            cursor: pointer; z-index: 100;
+        }
+
+        #container {
+            padding: 80px 0 80px 0;
+            column-width: 320px;
+            column-gap: 0;
+            column-rule: 1px solid #000;
+        }
+
+        .bio-item {
+            break-inside: avoid;
+            padding: 28px 32px;
+            border-bottom: 1px solid #000;
+        }
+
+        .bio-text {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.6;
+            color: #000;
+            word-break: keep-all;
+            /* 하이픈 완전 제거 */
+            hyphens: none;
+            -webkit-hyphens: none;
+        }
+    </style>
+</head>
+<body>
+    <svg id="back-btn" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"
+         onclick="window.location.href='index.html'">
+        <line x1="32" y1="20" x2="8" y2="20" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+        <polyline points="18,10 8,20 18,30" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+
+    <div id="container"></div>
+
+    <script>
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8yqJU0ZGStIv7BKToWATo5oj6pooV8KBHz_CTPwbORSdT93aF59rqEO_ENXdmEkUxXL/pub?gid=403210794&single=true&output=csv';
+
+        function parseCSV(text) {
+            const rows = [];
+            let row = [], cell = '', inQ = false;
+            for (let i = 0; i < text.length; i++) {
+                const c = text[i];
+                if (c === '"') { inQ = !inQ; }
+                else if (c === ',' && !inQ) { row.push(cell.trim()); cell = ''; }
+                else if ((c === '\n' || c === '\r') && !inQ) {
+                    if (cell !== '' || row.length) { row.push(cell.trim()); rows.push(row); }
+                    row = []; cell = '';
+                }
+                else { cell += c; }
+            }
+            if (row.length) { row.push(cell.trim()); rows.push(row); }
+            return rows;
+        }
+
+        async function init() {
+            try {
+                const res  = await fetch(SHEET_CSV_URL);
+                const csv  = await res.text();
+                const rows = parseCSV(csv);
+                const container = document.getElementById('container');
+
+                const dataRows = rows.slice(1);
+for (let i = dataRows.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [dataRows[i], dataRows[j]] = [dataRows[j], dataRows[i]];
+}
+dataRows.forEach(row => {
+                    const cell = (row[0] || '').trim();
+                    /* 영문 하이픈 제거 */
+                    const cleaned = cell.replace(/-/g, '');
+                    if (!cleaned) return;
+
+                    const item = document.createElement('div');
+                    item.className = 'bio-item';
+
+                    const p = document.createElement('p');
+                    p.className = 'bio-text';
+                    p.textContent = cleaned;
+
+                    item.appendChild(p);
+                    container.appendChild(item);
+                });
+
+            } catch (e) { console.error(e); }
+        }
+
+        init();
+    </script>
+</body>
+</html>

@@ -38,6 +38,7 @@ body, html {
     opacity: 0;
     visibility: visible;
     font-weight: 600;
+    line-height: 1.35;
 }
 
 .intro-text.typing-complete {
