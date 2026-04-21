@@ -12,36 +12,42 @@
         #canvas {
             width: 100vw; height: 100vh; position: relative;
         }
+        #line-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
         .word {
             position: absolute;
             white-space: nowrap;
             font-weight: 600;
             color: #000;
-            cursor: grab;
+            cursor: pointer;
             user-select: none;
             transform: translate(-50%, -50%);
             opacity: 0;
-            /* 등장 모션용 — 퍼진 뒤 JS로 제거 */
-            transition: opacity 0.25s ease,
-                        left 0.35s cubic-bezier(0.15, 1, 0.3, 1),
-                        top  0.35s cubic-bezier(0.15, 1, 0.3, 1);
+            z-index: 1;
+            transition: color 0.2s ease, opacity 0.2s ease;
         }
-        .word.dragging {
-            cursor: grabbing;
-            transition: none;
+        .word.faded {
+            opacity: 0.1;
         }
-        .word.snapping {
-            transition: left 0.25s cubic-bezier(0.15, 1, 0.3, 1),
-                        top  0.25s cubic-bezier(0.15, 1, 0.3, 1);
+        .word.focused {
+            color: #00FF00;
+            opacity: 1;
+        }
+        .word.detail-node {
+            color: #000;
+            opacity: 1;
+            cursor: pointer;
         }
         #back-btn {
             position: fixed;
-            top: 28px;
-            left: 28px;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            z-index: 100;
+            top: 28px; left: 28px;
+            width: 40px; height: 40px;
+            cursor: pointer; z-index: 100;
         }
     </style>
 </head>
@@ -52,15 +58,24 @@
         <polyline points="18,10 8,20 18,30" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
 
-    <div id="canvas"></div>
+    <div id="canvas">
+        <svg id="line-svg"></svg>
+    </div>
 
     <script>
         const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBgUmc8yqJU0ZGStIv7BKToWATo5oj6pooV8KBHz_CTPwbORSdT93aF59rqEO_ENXdmEkUxXL/pub?gid=403210794&single=true&output=csv';
 
         let nodes = [];
+        let edges = [];
+        let allRows = [];
         let baseW = 0, baseH = 0;
         let baseFontSize = 18;
         let spreadDone = false;
+        let focusedNode = null;
+        let detailNodes = [];
+        let detailLines = [];
+
+        const lineSVG = document.getElementById('line-svg');
 
         function parseCSV(text) {
             const rows = [];
@@ -84,25 +99,170 @@
             return b.meta.reduce((n, v) => n + (s.has(v) && v !== '' ? 1 : 0), 0);
         }
 
+        function nodeCenter(node) {
+            return {
+                x: parseFloat(node.el.style.left),
+                y: parseFloat(node.el.style.top)
+            };
+        }
+
+        function updateLines() {
+            edges.forEach(e => {
+                const ca = nodeCenter(e.a);
+                const cb = nodeCenter(e.b);
+                e.line.setAttribute('x1', ca.x); e.line.setAttribute('y1', ca.y);
+                e.line.setAttribute('x2', cb.x); e.line.setAttribute('y2', cb.y);
+            });
+        }
+
+        function updateDetailLines() {
+            detailLines.forEach(dl => {
+                const cx = parseFloat(focusedNode.el.style.left);
+                const cy = parseFloat(focusedNode.el.style.top);
+                const tx = parseFloat(dl.node.el.style.left);
+                const ty = parseFloat(dl.node.el.style.top);
+                dl.line.setAttribute('x1', cx); dl.line.setAttribute('y1', cy);
+                dl.line.setAttribute('x2', tx); dl.line.setAttribute('y2', ty);
+            });
+        }
+
+        function buildEdges() {
+            const N = nodes.length;
+            const maxSim = (() => {
+                let m = 0;
+                for (let i = 0; i < N; i++)
+                    for (let j = i+1; j < N; j++)
+                        m = Math.max(m, similarity(nodes[i], nodes[j]));
+                return m || 1;
+            })();
+            for (let i = 0; i < N; i++) {
+                for (let j = i+1; j < N; j++) {
+                    const sim = similarity(nodes[i], nodes[j]);
+                    if (sim < 1) continue;
+                    const ca = nodeCenter(nodes[i]), cb = nodeCenter(nodes[j]);
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', ca.x); line.setAttribute('y1', ca.y);
+                    line.setAttribute('x2', cb.x); line.setAttribute('y2', cb.y);
+                    line.setAttribute('stroke', '#00FF00');
+                    line.setAttribute('stroke-width', 1.2 + (sim/maxSim)*1.8);
+                    line.setAttribute('stroke-linecap', 'round');
+                    lineSVG.appendChild(line);
+                    edges.push({ a: nodes[i], b: nodes[j], sim, line });
+                }
+            }
+        }
+
+        function enterFocus(node) {
+            focusedNode = node;
+
+            edges.forEach(e => { e.line.style.opacity = '0.1'; });
+            nodes.forEach(n => {
+    n.el.classList.remove('focused', 'faded');
+    if (n === node) {
+        n.el.classList.add('focused');
+        n.el.style.opacity = '1';
+        n.el.style.color   = '#00FF00';
+    } else {
+        n.el.style.opacity = '0.1';
+        n.el.style.color   = '#000';
+    }
+});
+
+            /* 같은 행 C~L열 단어 수집 */
+            const matchedRow = allRows.find(row => {
+                const bCell = row[1] || '';
+                return bCell.split(/\r?\n/).map(w => w.trim()).includes(node.text);
+            });
+            if (!matchedRow) return;
+
+            const detailWords = [];
+            matchedRow.slice(2, 12).forEach(cell => {
+                cell.split(/\r?\n/).forEach(w => {
+                    const word = w.trim();
+                    if (word) detailWords.push(word);
+                });
+            });
+            if (!detailWords.length) return;
+
+            const cx = parseFloat(node.el.style.left);
+            const cy = parseFloat(node.el.style.top);
+            const canvas = document.getElementById('canvas');
+            const r = Math.min(window.innerWidth, window.innerHeight) * 0.20;
+
+            detailWords.forEach((word, i) => {
+                const angle = (i / detailWords.length) * Math.PI * 2 - Math.PI / 2;
+                const tx = Math.max(40, Math.min(window.innerWidth  - 40, cx + Math.cos(angle) * r));
+                const ty = Math.max(40, Math.min(window.innerHeight - 40, cy + Math.sin(angle) * r));
+
+                const div = document.createElement('div');
+                div.className = 'word detail-node';
+                div.innerText = word;
+                div.style.fontSize = Math.round(baseFontSize * 0.65) + 'px';
+                div.style.left = cx + 'px';
+                div.style.top  = cy + 'px';
+                div.style.opacity = '0';
+                div.style.transition = 'opacity 0.25s ease, left 0.35s cubic-bezier(0.15,1,0.3,1), top 0.35s cubic-bezier(0.15,1,0.3,1)';
+                canvas.appendChild(div);
+                div.addEventListener('click', e => { e.stopPropagation(); exitFocus(); });
+
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    div.style.opacity = '1';
+                    div.style.left = tx + 'px';
+                    div.style.top  = ty + 'px';
+                }));
+
+                /* 연결선 */
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', cx); line.setAttribute('y1', cy);
+                line.setAttribute('x2', cx); line.setAttribute('y2', cy);
+                line.setAttribute('stroke', '#000');
+                line.setAttribute('stroke-width', '1');
+                line.setAttribute('stroke-linecap', 'round');
+                lineSVG.appendChild(line);
+
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    line.style.transition = 'all 0.35s cubic-bezier(0.15,1,0.3,1)';
+                    line.setAttribute('x2', tx);
+                    line.setAttribute('y2', ty);
+                }));
+
+                const dNode = { el: div, tx, ty };
+                detailNodes.push(dNode);
+                detailLines.push({ line, node: dNode });
+            });
+        }
+
+        function exitFocus() {
+            focusedNode = null;
+            edges.forEach(e => { e.line.style.opacity = '1'; });
+            nodes.forEach(n => {
+    n.el.classList.remove('faded', 'focused');
+    n.el.style.opacity = '1';
+    n.el.style.color   = '#000';
+});
+            detailNodes.forEach(d => d.el.remove());
+            detailLines.forEach(dl => dl.line.remove());
+            detailNodes = [];
+            detailLines = [];
+        }
+
         async function init() {
             try {
                 const res  = await fetch(SHEET_CSV_URL);
                 const csv  = await res.text();
                 const rows = parseCSV(csv);
-                const cx   = window.innerWidth  / 2;
-                const cy   = window.innerHeight / 2;
+                allRows = rows.slice(1);
+                const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
 
-                rows.slice(1).forEach(row => {
+                allRows.forEach(row => {
                     const bCell = row[1] || '';
                     if (!bCell) return;
                     const bWords = bCell.split(/\r?\n/).map(w => w.trim()).filter(w => w);
                     const meta   = row.slice(1, 12).filter(v => v !== '');
                     bWords.forEach(word => {
-                        nodes.push({ text: word, meta,
-                                     x: cx, y: cy,
-                                     nx: 0.5, ny: 0.5,
-                                     tx: cx, ty: cy,
-                                     w: 0, h: 0, el: null });
+                        nodes.push({ text: word, meta, row,
+                                     x: cx, y: cy, nx: 0.5, ny: 0.5,
+                                     tx: cx, ty: cy, w: 0, h: 0, el: null });
                     });
                 });
 
@@ -111,43 +271,38 @@
                 measureNodes();
                 computeTargetPositions();
                 doSpread();
-
-            } catch (e) { console.error(e); }
+            } catch(e) { console.error(e); }
         }
 
         function buildDOM() {
             const canvas = document.getElementById('canvas');
-            const cx = window.innerWidth / 2;
-            const cy = window.innerHeight / 2;
+            const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
             nodes.forEach(node => {
                 const div = document.createElement('div');
-                div.className  = 'word';
-                div.innerText  = node.text;
+                div.className = 'word';
+                div.innerText = node.text;
                 div.style.fontSize = baseFontSize + 'px';
                 div.style.left = cx + 'px';
                 div.style.top  = cy + 'px';
                 canvas.appendChild(div);
                 node.el = div;
-                attachDrag(node);
+                attachInteraction(node);
             });
         }
 
-        function attachDrag(node) {
+        function attachInteraction(node) {
             const el = node.el;
-            let startX, startY, startLeft, startTop;
+            let startX, startY, startLeft, startTop, didMove;
 
             function onDown(e) {
                 if (!spreadDone) return;
                 e.preventDefault();
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                startX    = clientX;
-                startY    = clientY;
+                startX = clientX; startY = clientY;
                 startLeft = parseFloat(el.style.left);
                 startTop  = parseFloat(el.style.top);
-
-                el.classList.add('dragging');
-                el.classList.remove('snapping');
+                didMove = false;
 
                 document.addEventListener('mousemove', onMove);
                 document.addEventListener('mouseup',   onUp);
@@ -159,22 +314,54 @@
                 e.preventDefault();
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                el.style.left = (startLeft + clientX - startX) + 'px';
-                el.style.top  = (startTop  + clientY - startY) + 'px';
+                const dx = clientX - startX, dy = clientY - startY;
+                if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didMove = true;
+                if (!didMove) return;
+
+                el.style.left = (startLeft + dx) + 'px';
+                el.style.top  = (startTop  + dy) + 'px';
+                updateLines();
+
+                /* 포커스 상태면 디테일 노드도 같이 이동 */
+                if (focusedNode === node) {
+                    const moveDx = parseFloat(el.style.left) - startLeft;
+                    const moveDy = parseFloat(el.style.top)  - startTop;
+                    detailNodes.forEach(dn => {
+                        dn.el.style.left = (dn.tx + moveDx) + 'px';
+                        dn.el.style.top  = (dn.ty + moveDy) + 'px';
+                    });
+                    updateDetailLines();
+                }
             }
 
-            function onUp() {
-                el.classList.remove('dragging');
+            function onUp(e) {
                 document.removeEventListener('mousemove', onMove);
                 document.removeEventListener('mouseup',   onUp);
                 document.removeEventListener('touchmove', onMove);
                 document.removeEventListener('touchend',  onUp);
 
-                /* 손 떼는 즉시 복귀 */
-                el.classList.add('snapping');
-                el.style.left = node.tx + 'px';
-                el.style.top  = node.ty + 'px';
-                setTimeout(() => el.classList.remove('snapping'), 300);
+                if (!didMove) {
+                    /* 클릭 */
+                    if (focusedNode === node) {
+                        exitFocus();
+                    } else {
+                        if (focusedNode) exitFocus();
+                        enterFocus(node);
+                    }
+                } else {
+                    /* 드래그 끝 — 포커스 상태면 디테일 기준 위치 업데이트 */
+                    if (focusedNode === node) {
+                        const finalLeft = parseFloat(el.style.left);
+                        const finalTop  = parseFloat(el.style.top);
+                        const moveDx = finalLeft - startLeft;
+                        const moveDy = finalTop  - startTop;
+                        detailNodes.forEach(dn => {
+                            dn.tx = dn.tx + moveDx;
+                            dn.ty = dn.ty + moveDy;
+                        });
+                    }
+                    updateLines();
+                }
             }
 
             el.addEventListener('mousedown',  onDown);
@@ -182,28 +369,19 @@
         }
 
         function computeFontSize() {
-            const W = window.innerWidth;
-            const H = window.innerHeight;
-            const screenArea = W * H;
-
+            const W = window.innerWidth, H = window.innerHeight;
             const tester = document.createElement('div');
             tester.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font-weight:600;font-size:18px;font-family:sans-serif;';
             document.body.appendChild(tester);
-
             let totalArea = 0;
             nodes.forEach(n => {
                 tester.innerText = n.text;
                 totalArea += (tester.offsetWidth + 44) * (tester.offsetHeight + 28);
             });
             document.body.removeChild(tester);
-
-            const targetFill = 0.70;
-            const scale = Math.sqrt((screenArea * targetFill) / totalArea);
+            const scale = Math.sqrt((W * H * 0.70) / totalArea);
             baseFontSize = Math.max(12, Math.min(72, Math.round(18 * scale)));
-
-            nodes.forEach(n => {
-                if (n.el) n.el.style.fontSize = baseFontSize + 'px';
-            });
+            nodes.forEach(n => { if (n.el) n.el.style.fontSize = baseFontSize + 'px'; });
         }
 
         function measureNodes() {
@@ -214,144 +392,85 @@
         }
 
         function computeTargetPositions() {
-            const W  = window.innerWidth;
-            const H  = window.innerHeight;
-            const cx = W / 2;
-            const cy = H / 2;
-            const N  = nodes.length;
-
-            baseW = W;
-            baseH = H;
-
+            const W = window.innerWidth, H = window.innerHeight;
+            const cx = W/2, cy = H/2, N = nodes.length;
+            baseW = W; baseH = H;
             const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-            const maxR = Math.min(W * 0.46, H * 0.46);
+            const maxR = Math.min(W*0.46, H*0.46);
             nodes.forEach((n, i) => {
-                const r = maxR * Math.sqrt((i + 0.5) / N);
+                const r = maxR * Math.sqrt((i+0.5)/N);
                 const a = i * goldenAngle;
-                const rNoise = r * (0.85 + Math.random() * 0.5);
-                const aNoise = a + (Math.random() - 0.5) * 0.8;
-                n.x = cx + Math.cos(aNoise) * rNoise;
-                n.y = cy + Math.sin(aNoise) * rNoise;
+                n.x = cx + Math.cos(a+(Math.random()-0.5)*0.8) * (r*(0.85+Math.random()*0.5));
+                n.y = cy + Math.sin(a+(Math.random()-0.5)*0.8) * (r*(0.85+Math.random()*0.5));
             });
-
             for (let iter = 0; iter < 1200; iter++) {
-                const progress = iter / 1200;
-                const repelStr = 1.5 * (1 - progress * 0.5);
-
+                const repelStr = 1.5 * (1 - iter/1200*0.5);
                 nodes.forEach(n => {
-                    const dx = n.x - cx;
-                    const dy = n.y - cy;
-                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                    const repel = Math.max(0, 1 - dist / (maxR * 0.95)) * repelStr;
-                    n.x += (dx / dist) * repel;
-                    n.y += (dy / dist) * repel;
+                    const dx=n.x-cx, dy=n.y-cy, dist=Math.sqrt(dx*dx+dy*dy)||1;
+                    const repel=Math.max(0,1-dist/(maxR*0.95))*repelStr;
+                    n.x+=(dx/dist)*repel; n.y+=(dy/dist)*repel;
                 });
-
-                for (let i = 0; i < N; i++) {
-                    for (let j = i + 1; j < N; j++) {
-                        const a = nodes[i], b = nodes[j];
-                        const dx = b.x - a.x;
-                        const dy = b.y - a.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
-
-                        const sim = similarity(a, b);
-                        if (sim > 0) {
-                            const f = sim * 0.10;
-                            a.x += (dx / dist) * f;
-                            a.y += (dy / dist) * f;
-                            b.x -= (dx / dist) * f;
-                            b.y -= (dy / dist) * f;
-                        }
-
-                        const mw = (a.w + b.w) / 2;
-                        const mh = (a.h + b.h) / 2;
-                        const ox = mw - Math.abs(dx);
-                        const oy = mh - Math.abs(dy);
-                        if (ox > 0 && oy > 0) {
-                            if (ox < oy) {
-                                const push = (dx >= 0 ? 1 : -1) * ox * 0.5;
-                                a.x -= push; b.x += push;
-                            } else {
-                                const push = (dy >= 0 ? 1 : -1) * oy * 0.5;
-                                a.y -= push; b.y += push;
-                            }
-                        }
+                for (let i=0; i<N; i++) for (let j=i+1; j<N; j++) {
+                    const a=nodes[i], b=nodes[j];
+                    const dx=b.x-a.x, dy=b.y-a.y, dist=Math.sqrt(dx*dx+dy*dy)||0.1;
+                    const sim=similarity(a,b);
+                    if (sim>0) { const f=sim*0.10; a.x+=(dx/dist)*f; a.y+=(dy/dist)*f; b.x-=(dx/dist)*f; b.y-=(dy/dist)*f; }
+                    const mw=(a.w+b.w)/2, mh=(a.h+b.h)/2;
+                    const ox=mw-Math.abs(dx), oy=mh-Math.abs(dy);
+                    if (ox>0&&oy>0) {
+                        if (ox<oy){const p=(dx>=0?1:-1)*ox*0.5; a.x-=p; b.x+=p;}
+                        else      {const p=(dy>=0?1:-1)*oy*0.5; a.y-=p; b.y+=p;}
                     }
                 }
             }
-
-            let hasOverlap = true;
-            let safetyCount = 0;
-            while (hasOverlap && safetyCount < 200) {
-                hasOverlap = false;
-                safetyCount++;
-                for (let i = 0; i < N; i++) {
-                    for (let j = i + 1; j < N; j++) {
-                        const a = nodes[i], b = nodes[j];
-                        const dx = b.x - a.x;
-                        const dy = b.y - a.y;
-                        const mw = (a.w + b.w) / 2;
-                        const mh = (a.h + b.h) / 2;
-                        const ox = mw - Math.abs(dx);
-                        const oy = mh - Math.abs(dy);
-                        if (ox > 0 && oy > 0) {
-                            hasOverlap = true;
-                            if (ox < oy) {
-                                const push = (dx >= 0 ? 1 : -1) * (ox * 0.5 + 1);
-                                a.x -= push; b.x += push;
-                            } else {
-                                const push = (dy >= 0 ? 1 : -1) * (oy * 0.5 + 1);
-                                a.y -= push; b.y += push;
-                            }
-                        }
+            let hasOverlap=true, safety=0;
+            while(hasOverlap&&safety<200){hasOverlap=false;safety++;
+                for(let i=0;i<N;i++) for(let j=i+1;j<N;j++){
+                    const a=nodes[i],b=nodes[j],dx=b.x-a.x,dy=b.y-a.y;
+                    const mw=(a.w+b.w)/2,mh=(a.h+b.h)/2,ox=mw-Math.abs(dx),oy=mh-Math.abs(dy);
+                    if(ox>0&&oy>0){hasOverlap=true;
+                        if(ox<oy){const p=(dx>=0?1:-1)*(ox*0.5+1);a.x-=p;b.x+=p;}
+                        else{const p=(dy>=0?1:-1)*(oy*0.5+1);a.y-=p;b.y+=p;}
                     }
                 }
             }
-
-            const mg = 50;
-            nodes.forEach(n => {
-                n.tx = Math.max(mg, Math.min(W - mg, n.x));
-                n.ty = Math.max(mg, Math.min(H - mg, n.y));
-                n.nx = n.tx / W;
-                n.ny = n.ty / H;
+            const mg=50;
+            nodes.forEach(n=>{
+                n.tx=Math.max(mg,Math.min(W-mg,n.x));
+                n.ty=Math.max(mg,Math.min(H-mg,n.y));
+                n.nx=n.tx/W; n.ny=n.ty/H;
             });
         }
 
         function doSpread() {
-            /* 한 프레임 뒤 실행해야 중심→목표 transition이 브라우저에 잡힘 */
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    spreadDone = true;
-                    nodes.forEach(node => {
-                        node.el.style.opacity = '1';
-                        node.el.style.left    = node.tx + 'px';
-                        node.el.style.top     = node.ty + 'px';
-                    });
-                    /* 등장 완료 후 transition 제거 — 이후 드래그/리사이즈 즉각 반응 */
-                    setTimeout(() => {
-                        nodes.forEach(node => {
-                            node.el.style.transition = 'none';
-                        });
-                    }, 400);
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                spreadDone = true;
+                nodes.forEach(node => {
+                    node.el.style.opacity = '1';
+                    node.el.style.left    = node.tx + 'px';
+                    node.el.style.top     = node.ty + 'px';
                 });
-            });
+                setTimeout(() => {
+                    nodes.forEach(node => { node.el.style.transition = 'color 0.2s ease, opacity 0.2s ease'; });
+                    buildEdges();
+                    updateLines();
+                }, 400);
+            }));
         }
 
         function onResize() {
             if (!spreadDone) return;
-            const W = window.innerWidth;
-            const H = window.innerHeight;
-            const scale = Math.sqrt((W * H) / (baseW * baseH));
-            const newFont = Math.max(10, Math.round(baseFontSize * scale));
-
+            const W = window.innerWidth, H = window.innerHeight;
+            const scale = Math.sqrt((W*H)/(baseW*baseH));
+            const newFont = Math.max(10, Math.round(baseFontSize*scale));
             nodes.forEach(node => {
                 node.el.style.transition = 'none';
-                node.el.style.fontSize   = newFont + 'px';
-                node.el.style.left       = (node.nx * W) + 'px';
-                node.el.style.top        = (node.ny * H) + 'px';
-                node.tx = node.nx * W;
-                node.ty = node.ny * H;
+                node.el.style.fontSize = newFont + 'px';
+                node.el.style.left = (node.nx*W) + 'px';
+                node.el.style.top  = (node.ny*H) + 'px';
+                node.tx = node.nx*W; node.ty = node.ny*H;
             });
+            updateLines();
         }
 
         window.addEventListener('resize', onResize);

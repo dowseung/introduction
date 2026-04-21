@@ -38,9 +38,17 @@
             line-height: 1.6;
             color: #000;
             word-break: keep-all;
-            /* 하이픈 완전 제거 */
             hyphens: none;
             -webkit-hyphens: none;
+        }
+
+        .highlightable {
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+
+        .highlightable:hover {
+            color: #00FF00;
         }
     </style>
 </head>
@@ -73,30 +81,69 @@
             return rows;
         }
 
+        /* A열 텍스트에서 highlightSet 단어가 포함된 부분을 span으로 감싸기 */
+        function applyHighlights(text, highlightSet) {
+            /* 긴 단어부터 매칭해야 짧은 단어가 먼저 걸리는 오류 방지 */
+            const sorted = [...highlightSet].sort((a, b) => b.length - a.length);
+            /* 특수문자 escape */
+            const escaped = sorted.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            if (!escaped.length) return document.createTextNode(text);
+
+            const regex = new RegExp(`(${escaped.join('|')})`, 'g');
+            const parts = text.split(regex);
+            const frag = document.createDocumentFragment();
+            parts.forEach(part => {
+                if (highlightSet.has(part)) {
+                    const span = document.createElement('span');
+                    span.className = 'highlightable';
+                    span.textContent = part;
+                    frag.appendChild(span);
+                } else {
+                    frag.appendChild(document.createTextNode(part));
+                }
+            });
+            return frag;
+        }
+
         async function init() {
             try {
-                const res  = await fetch(SHEET_CSV_URL);
-                const csv  = await res.text();
+                const res = await fetch(SHEET_CSV_URL);
+                const csv = await res.text();
                 const rows = parseCSV(csv);
                 const container = document.getElementById('container');
 
+                /* ── 하이라이트 단어 수집
+                   1행 제외 + A열(0) 제외 + N열(13) 제외
+                   줄바꿈 단위로 개별 텍스트 분리 ── */
+                const highlightSet = new Set();
+                rows.slice(1).forEach(row => {
+                    row.forEach((cell, colIdx) => {
+                        if (colIdx === 0 || colIdx === 13) return;
+                        cell.split(/\r?\n/).forEach(line => {
+                            const word = line.trim();
+                            if (word) highlightSet.add(word);
+                        });
+                    });
+                });
+
+                /* ── 셔플 ── */
                 const dataRows = rows.slice(1);
-for (let i = dataRows.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [dataRows[i], dataRows[j]] = [dataRows[j], dataRows[i]];
-}
-dataRows.forEach(row => {
-                    const cell = (row[0] || '').trim();
-                    /* 영문 하이픈 제거 */
-                    const cleaned = cell.replace(/-/g, '');
-                    if (!cleaned) return;
+                for (let i = dataRows.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [dataRows[i], dataRows[j]] = [dataRows[j], dataRows[i]];
+                }
+
+                /* ── A열 렌더링 ── */
+                dataRows.forEach(row => {
+                    const cell = (row[0] || '').trim().replace(/-/g, '');
+                    if (!cell) return;
 
                     const item = document.createElement('div');
                     item.className = 'bio-item';
 
                     const p = document.createElement('p');
                     p.className = 'bio-text';
-                    p.textContent = cleaned;
+                    p.appendChild(applyHighlights(cell, highlightSet));
 
                     item.appendChild(p);
                     container.appendChild(item);

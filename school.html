@@ -6,29 +6,89 @@
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background: #ebebeb; font-family: sans-serif;
+            overflow: hidden; background: #ebebeb;
+            font-family: sans-serif;
         }
         #canvas {
             width: 100vw; height: 100vh; position: relative;
-        }
-        .word {
-            position: absolute;
-            font-weight: 600;
-            color: #000;
-            cursor: default;
-            user-select: none;
-            transform: translate(-50%, -50%);
-            opacity: 0;
-            white-space: nowrap;
-            transition: opacity 0.25s ease,
-                        left 0.35s cubic-bezier(0.15, 1, 0.3, 1),
-                        top  0.35s cubic-bezier(0.15, 1, 0.3, 1);
+            overflow: hidden;
         }
         #back-btn {
             position: fixed;
             top: 28px; left: 28px;
             width: 40px; height: 40px;
             cursor: pointer; z-index: 100;
+        }
+        .dot-wrap {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+        .dot-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #00FF00;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.15s ease;
+        }
+        .dot-wrap:hover .dot-circle {
+            transform: scale(1.06);
+        }
+        .dot-label-inside {
+            color: #000;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            position: relative;
+            z-index: 2;
+        }
+        .dot-wrap:hover .dot-label-inside {
+            opacity: 1;
+        }
+        .dot-label-above {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #000;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            z-index: 10;
+        }
+        .dot-wrap:hover .dot-label-above {
+            opacity: 1;
+        }
+        /* 클릭 상태 */
+        .dot-wrap.focused {
+            opacity: 1 !important;
+        }
+        .dot-wrap.focused .dot-label-inside,
+        .dot-wrap.focused .dot-label-above {
+            opacity: 1 !important;
+        }
+        .dot-wrap.dimmed {
+            opacity: 0.15 !important;
+        }
+        /* 도넛 */
+        .donut {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid #000000;
+            background: transparent;
+            pointer-events: none;
+            z-index: 3;
         }
     </style>
 </head>
@@ -47,6 +107,10 @@
         let nodes = [];
         let baseW = 0, baseH = 0;
         let spreadDone = false;
+        let focusedNode = null;
+        let animFrames = [];
+
+        const MIN_FONT = 11;
 
         function parseCSV(text) {
             const rows = [];
@@ -65,222 +129,319 @@
             return rows;
         }
 
+        function measureText(text, fontSize) {
+            const t = document.createElement('span');
+            t.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font-weight:600;font-size:${fontSize}px;font-family:sans-serif;`;
+            t.textContent = text;
+            document.body.appendChild(t);
+            const w = t.offsetWidth;
+            document.body.removeChild(t);
+            return w;
+        }
+
+        /* ── 도넛 애니메이션 ── */
+        function spawnDonuts(node) {
+            const circle = node.el.querySelector('.dot-circle');
+            const R = node.r;
+            const count = node.count;
+            const donuts = [];
+
+            /* 도넛 크기: 점 크기에 비례, 최소 8 최대 R*0.35 */
+            const donutR = Math.max(8, Math.min(R * 0.04, 5));
+            const borderW = 5
+
+            for (let i = 0; i < count; i++) {
+                const d = document.createElement('div');
+                d.className = 'donut';
+                const size = donutR * 2;
+                d.style.width  = size + 'px';
+                d.style.height = size + 'px';
+                d.style.borderWidth = borderW + 'px';
+
+                /* 초기 위치: 원 내부 랜덤 */
+                const maxOff = R - donutR - 4;
+                const angle  = Math.random() * Math.PI * 2;
+                const rad    = Math.random() * maxOff;
+                let px = R + Math.cos(angle) * rad;
+                let py = R + Math.sin(angle) * rad;
+
+                d.style.left = px + 'px';
+                d.style.top  = py + 'px';
+                d.style.transform = 'translate(-50%, -50%)';
+
+                circle.appendChild(d);
+
+                /* 각 도넛의 물리 상태 */
+                donuts.push({
+                    el: d,
+                    x: px, y: py,
+                    vx: (Math.random() - 0.5) * 1.2,
+                    vy: (Math.random() - 0.5) * 1.2,
+                    r: donutR
+                });
+            }
+
+            node.donuts = donuts;
+
+            /* 애니메이션 루프 */
+            function animate() {
+                const boundary = R - donutR - 2;
+                donuts.forEach(dn => {
+                    dn.x += dn.vx;
+                    dn.y += dn.vy;
+
+                    /* 원 경계 반사 */
+                    const cx = R, cy = R;
+                    const dx = dn.x - cx, dy = dn.y - cy;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist > boundary) {
+                        /* 법선 방향으로 반사 */
+                        const nx = dx / dist, ny = dy / dist;
+                        const dot = dn.vx * nx + dn.vy * ny;
+                        dn.vx -= 2 * dot * nx;
+                        dn.vy -= 2 * dot * ny;
+                        dn.x = cx + nx * (boundary - 1);
+                        dn.y = cy + ny * (boundary - 1);
+                    }
+
+                    /* 도넛끼리 충돌 */
+                    donuts.forEach(other => {
+                        if (other === dn) return;
+                        const ddx = other.x - dn.x, ddy = other.y - dn.y;
+                        const d2 = Math.sqrt(ddx*ddx + ddy*ddy) || 0.1;
+                        const minD = dn.r + other.r + 2;
+                        if (d2 < minD) {
+                            const nx2 = ddx/d2, ny2 = ddy/d2;
+                            const rel = (dn.vx - other.vx)*nx2 + (dn.vy - other.vy)*ny2;
+                            if (rel > 0) {
+                                dn.vx -= rel * nx2;
+                                dn.vy -= rel * ny2;
+                                other.vx += rel * nx2;
+                                other.vy += rel * ny2;
+                            }
+                            const overlap = minD - d2;
+                            dn.x -= nx2 * overlap * 0.5;
+                            dn.y -= ny2 * overlap * 0.5;
+                            other.x += nx2 * overlap * 0.5;
+                            other.y += ny2 * overlap * 0.5;
+                        }
+                    });
+
+                    dn.el.style.left = dn.x + 'px';
+                    dn.el.style.top  = dn.y + 'px';
+                });
+
+                const af = requestAnimationFrame(animate);
+                animFrames.push(af);
+            }
+
+            const af = requestAnimationFrame(animate);
+            animFrames.push(af);
+        }
+
+        function clearDonuts(node) {
+            if (!node || !node.donuts) return;
+            node.donuts.forEach(d => d.el.remove());
+            node.donuts = [];
+        }
+
+        function stopAnims() {
+            animFrames.forEach(af => cancelAnimationFrame(af));
+            animFrames = [];
+        }
+
+        function enterFocus(node) {
+            focusedNode = node;
+            nodes.forEach(n => {
+                n.el.classList.remove('focused', 'dimmed');
+                n.el.classList.add(n === node ? 'focused' : 'dimmed');
+            });
+            spawnDonuts(node);
+        }
+
+        function exitFocus() {
+            if (focusedNode) clearDonuts(focusedNode);
+            stopAnims();
+            focusedNode = null;
+            nodes.forEach(n => n.el.classList.remove('focused', 'dimmed'));
+        }
+
         async function init() {
             try {
                 const res  = await fetch(SHEET_CSV_URL);
                 const csv  = await res.text();
                 const rows = parseCSV(csv);
 
-                /* E열(index 4) 단어 수집 — 1행 제외 */
                 const countMap = {};
                 rows.slice(1).forEach(row => {
                     const cell = (row[4] || '').trim();
-                    if (!cell) return;
-                    /* 줄바꿈 단위로 분리 */
                     cell.split(/\r?\n/).forEach(w => {
                         const word = w.trim();
-                        if (!word) return;
-                        countMap[word] = (countMap[word] || 0) + 1;
+                        if (word) countMap[word] = (countMap[word] || 0) + 1;
                     });
                 });
 
-                /* 빈도 기반 폰트 크기 계산 */
+                const W = window.innerWidth;
+                const H = window.innerHeight;
+                baseW = W; baseH = H;
+
                 const maxCount = Math.max(...Object.values(countMap));
                 const minCount = Math.min(...Object.values(countMap));
-                const MIN_FONT = 14;
-                const MAX_FONT = 72;
-
-                const cx = window.innerWidth  / 2;
-                const cy = window.innerHeight / 2;
+                const MAX_R = Math.min(W, H) * 0.25;
+                const MIN_R = 10;
 
                 Object.entries(countMap).forEach(([word, count]) => {
-                    /* count 비율로 폰트 크기 결정 */
                     const ratio = minCount === maxCount ? 1
                         : (count - minCount) / (maxCount - minCount);
-                    const fontSize = Math.round(MIN_FONT + ratio * (MAX_FONT - MIN_FONT));
+                    const r = Math.round(MIN_R + Math.sqrt(ratio) * (MAX_R - MIN_R));
 
-                    nodes.push({
-                        text: word, count, fontSize,
-                        x: cx, y: cy,
-                        nx: 0.5, ny: 0.5,
-                        tx: cx, ty: cy,
-                        w: 0, h: 0, el: null
-                    });
+                    const innerW = r * Math.sqrt(2) * 0.85;
+                    let bestFont = MIN_FONT;
+                    for (let fs = MIN_FONT; fs <= 72; fs++) {
+                        const tw = measureText(word, fs);
+                        if (tw <= innerW && fs * 1.2 <= r * 1.6) bestFont = fs;
+                        else break;
+                    }
+                    const textW = measureText(word, bestFont);
+                    const inside = textW <= innerW && bestFont >= MIN_FONT && r >= 20;
+
+                    nodes.push({ word, count, r, fontSize: bestFont, labelInside: inside,
+                        x: W/2, y: H/2, tx: W/2, ty: H/2,
+                        nx: 0.5, ny: 0.5, el: null, donuts: [] });
                 });
 
-                /* 큰 단어가 중심에 오도록 count 내림차순 정렬 */
                 nodes.sort((a, b) => b.count - a.count);
-
                 buildDOM();
-                measureNodes();
                 computeTargetPositions();
                 doSpread();
 
-            } catch (e) { console.error(e); }
+            } catch(e) { console.error(e); }
         }
 
         function buildDOM() {
             const canvas = document.getElementById('canvas');
-            const cx = window.innerWidth / 2;
-            const cy = window.innerHeight / 2;
+            const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+
             nodes.forEach(node => {
-                const div = document.createElement('div');
-                div.className  = 'word';
-                div.innerText  = node.text;
-                div.style.fontSize = node.fontSize + 'px';
-                div.style.left = cx + 'px';
-                div.style.top  = cy + 'px';
-                canvas.appendChild(div);
-                node.el = div;
-            });
-        }
+                const wrap = document.createElement('div');
+                wrap.className = 'dot-wrap';
+                wrap.style.width  = node.r * 2 + 'px';
+                wrap.style.height = node.r * 2 + 'px';
+                wrap.style.left   = cx + 'px';
+                wrap.style.top    = cy + 'px';
+                wrap.style.opacity = '0';
+                wrap.style.transition = 'opacity 0.3s ease, left 0.45s cubic-bezier(0.15,1,0.3,1), top 0.45s cubic-bezier(0.15,1,0.3,1)';
 
-        function measureNodes() {
-            nodes.forEach(node => {
-                node.w = node.el.offsetWidth  + 20;
-                node.h = node.el.offsetHeight + 14;
-            });
-        }
+                const circle = document.createElement('div');
+                circle.className = 'dot-circle';
 
-        function computeTargetPositions() {
-            const W  = window.innerWidth;
-            const H  = window.innerHeight;
-            const cx = W / 2;
-            const cy = H / 2;
-            const N  = nodes.length;
-
-            baseW = W;
-            baseH = H;
-
-            const maxCount = nodes[0].count;
-
-            /* 초기 위치: 빈도 높을수록 중심 가까이, 낮을수록 멀리 */
-            nodes.forEach((n, i) => {
-                const ratio = maxCount === 1 ? 0
-                    : 1 - (n.count - 1) / (maxCount - 1);
-                /* ratio 0 = 중심, 1 = 외곽 */
-                const maxR = Math.min(W, H) * 0.44;
-                const r = maxR * ratio * (0.8 + Math.random() * 0.4);
-                const angle = Math.random() * Math.PI * 2;
-                n.x = cx + Math.cos(angle) * r;
-                n.y = cy + Math.sin(angle) * r;
-            });
-
-            /* 시뮬레이션 */
-            for (let iter = 0; iter < 1200; iter++) {
-                const progress = iter / 1200;
-
-                for (let i = 0; i < N; i++) {
-                    for (let j = i + 1; j < N; j++) {
-                        const a = nodes[i], b = nodes[j];
-                        const dx = b.x - a.x;
-                        const dy = b.y - a.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
-
-                        /* 겹침 반발 */
-                        const mw = (a.w + b.w) / 2;
-                        const mh = (a.h + b.h) / 2;
-                        const ox = mw - Math.abs(dx);
-                        const oy = mh - Math.abs(dy);
-                        if (ox > 0 && oy > 0) {
-                            if (ox < oy) {
-                                const push = (dx >= 0 ? 1 : -1) * ox * 0.55;
-                                a.x -= push; b.x += push;
-                            } else {
-                                const push = (dy >= 0 ? 1 : -1) * oy * 0.55;
-                                a.y -= push; b.y += push;
-                            }
-                        }
-
-                        /* 빈도 차이에 따른 인력 — 비슷한 크기끼리 모이게 */
-                        const countDiff = Math.abs(a.count - b.count);
-                        if (countDiff <= 1) {
-                            const f = 0.08 * (1 - progress * 0.5);
-                            a.x += (dx / dist) * f;
-                            a.y += (dy / dist) * f;
-                            b.x -= (dx / dist) * f;
-                            b.y -= (dy / dist) * f;
-                        }
-                    }
-
-                    /* 각 노드를 빈도 기반 목표 반경으로 끌어당김 */
-                    const ratio = maxCount === 1 ? 0
-                        : 1 - (nodes[i].count - 1) / (maxCount - 1);
-                    const targetR = Math.min(W, H) * 0.40 * ratio;
-                    const dx0 = nodes[i].x - cx;
-                    const dy0 = nodes[i].y - cy;
-                    const curR = Math.sqrt(dx0 * dx0 + dy0 * dy0) || 1;
-                    const pull = (curR - targetR) * 0.012;
-                    nodes[i].x -= (dx0 / curR) * pull;
-                    nodes[i].y -= (dy0 / curR) * pull;
+                if (node.labelInside) {
+                    const label = document.createElement('span');
+                    label.className = 'dot-label-inside';
+                    label.textContent = node.word;
+                    label.style.fontSize = node.fontSize + 'px';
+                    circle.appendChild(label);
+                } else {
+                    const label = document.createElement('div');
+                    label.className = 'dot-label-above';
+                    label.textContent = node.word;
+                    label.style.fontSize = Math.max(MIN_FONT, node.fontSize) + 'px';
+                    label.style.bottom = (node.r * 2 + 6) + 'px';
+                    wrap.appendChild(label);
                 }
-            }
 
-            /* 겹침 최종 정리 */
-            let hasOverlap = true;
-            let safety = 0;
-            while (hasOverlap && safety < 200) {
-                hasOverlap = false; safety++;
-                for (let i = 0; i < N; i++) {
-                    for (let j = i + 1; j < N; j++) {
-                        const a = nodes[i], b = nodes[j];
-                        const dx = b.x - a.x, dy = b.y - a.y;
-                        const mw = (a.w + b.w) / 2, mh = (a.h + b.h) / 2;
-                        const ox = mw - Math.abs(dx), oy = mh - Math.abs(dy);
-                        if (ox > 0 && oy > 0) {
-                            hasOverlap = true;
-                            if (ox < oy) {
-                                const p = (dx >= 0 ? 1 : -1) * (ox * 0.5 + 1);
-                                a.x -= p; b.x += p;
-                            } else {
-                                const p = (dy >= 0 ? 1 : -1) * (oy * 0.5 + 1);
-                                a.y -= p; b.y += p;
-                            }
-                        }
-                    }
-                }
-            }
+                wrap.appendChild(circle);
+                canvas.appendChild(wrap);
+                node.el = wrap;
 
-            const mg = 50;
-            nodes.forEach(n => {
-                n.tx = Math.max(mg, Math.min(W - mg, n.x));
-                n.ty = Math.max(mg, Math.min(H - mg, n.y));
-                n.nx = n.tx / W;
-                n.ny = n.ty / H;
-            });
-        }
-
-        function doSpread() {
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    spreadDone = true;
-                    nodes.forEach(node => {
-                        node.el.style.opacity = '1';
-                        node.el.style.left    = node.tx + 'px';
-                        node.el.style.top     = node.ty + 'px';
-                    });
-                    setTimeout(() => {
-                        nodes.forEach(node => {
-                            node.el.style.transition = 'none';
-                        });
-                    }, 400);
+                wrap.addEventListener('click', () => {
+                    if (!spreadDone) return;
+                    if (focusedNode === node) exitFocus();
+                    else { if (focusedNode) exitFocus(); enterFocus(node); }
                 });
             });
         }
 
+        function computeTargetPositions() {
+            const W = window.innerWidth, H = window.innerHeight;
+            const N = nodes.length;
+            const mg = 20;
+
+            nodes.forEach(n => {
+                n.x = mg + n.r + Math.random() * (W - mg*2 - n.r*2);
+                n.y = mg + n.r + Math.random() * (H - mg*2 - n.r*2);
+            });
+
+            for (let iter = 0; iter < 3000; iter++) {
+                for (let i = 0; i < N; i++) {
+                    for (let j = i+1; j < N; j++) {
+                        const a = nodes[i], b = nodes[j];
+                        const dx = b.x-a.x, dy = b.y-a.y;
+                        const dist = Math.sqrt(dx*dx+dy*dy) || 0.1;
+                        const minDist = a.r + b.r + 10;
+                        if (dist < minDist) {
+                            const push = (minDist - dist) * 0.52;
+                            a.x -= (dx/dist)*push; a.y -= (dy/dist)*push;
+                            b.x += (dx/dist)*push; b.y += (dy/dist)*push;
+                        }
+                    }
+                }
+                nodes.forEach(n => {
+                    n.x = Math.max(mg+n.r, Math.min(W-mg-n.r, n.x));
+                    n.y = Math.max(mg+n.r, Math.min(H-mg-n.r, n.y));
+                });
+            }
+
+            let hasOverlap = true, safety = 0;
+            while (hasOverlap && safety < 500) {
+                hasOverlap = false; safety++;
+                for (let i = 0; i < N; i++) {
+                    for (let j = i+1; j < N; j++) {
+                        const a = nodes[i], b = nodes[j];
+                        const dx = b.x-a.x, dy = b.y-a.y;
+                        const dist = Math.sqrt(dx*dx+dy*dy) || 0.1;
+                        const minDist = a.r + b.r + 10;
+                        if (dist < minDist) {
+                            hasOverlap = true;
+                            const push = (minDist-dist)*0.5+1;
+                            a.x -= (dx/dist)*push; a.y -= (dy/dist)*push;
+                            b.x += (dx/dist)*push; b.y += (dy/dist)*push;
+                            a.x = Math.max(mg+a.r, Math.min(W-mg-a.r, a.x));
+                            a.y = Math.max(mg+a.r, Math.min(H-mg-a.r, a.y));
+                            b.x = Math.max(mg+b.r, Math.min(W-mg-b.r, b.x));
+                            b.y = Math.max(mg+b.r, Math.min(H-mg-b.r, b.y));
+                        }
+                    }
+                }
+            }
+
+            nodes.forEach(n => {
+                n.tx = Math.max(mg+n.r, Math.min(W-mg-n.r, n.x));
+                n.ty = Math.max(mg+n.r, Math.min(H-mg-n.r, n.y));
+                n.nx = n.tx/W; n.ny = n.ty/H;
+            });
+        }
+
+        function doSpread() {
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                spreadDone = true;
+                nodes.forEach(node => {
+                    node.el.style.opacity = '1';
+                    node.el.style.left    = node.tx + 'px';
+                    node.el.style.top     = node.ty + 'px';
+                });
+                setTimeout(() => {
+                    nodes.forEach(node => { node.el.style.transition = 'opacity 0.3s ease'; });
+                }, 550);
+            }));
+        }
+
         function onResize() {
             if (!spreadDone) return;
-            const W = window.innerWidth;
-            const H = window.innerHeight;
-            const scale = Math.sqrt((W * H) / (baseW * baseH));
-
+            const W = window.innerWidth, H = window.innerHeight;
             nodes.forEach(node => {
-                node.el.style.transition = 'none';
-                node.el.style.fontSize   = Math.max(10, Math.round(node.fontSize * scale)) + 'px';
-                node.el.style.left       = (node.nx * W) + 'px';
-                node.el.style.top        = (node.ny * H) + 'px';
-                node.tx = node.nx * W;
-                node.ty = node.ny * H;
+                node.el.style.left = (node.nx * W) + 'px';
+                node.el.style.top  = (node.ny * H) + 'px';
             });
         }
 
