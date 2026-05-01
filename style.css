@@ -3,7 +3,6 @@
     src: url('./fonts/AstaSans-Regular.woff2') format('woff2');
 }
 
-/* 영문·숫자만 얇게 — 한글 웨이트(600)와 시각적으로 비슷하게 */
 @font-face {
     font-family: 'LatinThin';
     src: local('Helvetica Neue'), local('Helvetica');
@@ -17,7 +16,6 @@ body, html {
     width: 100%;
     height: 100%;
     background-color: #ebebeb;
-    overflow: hidden;
     font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
     -webkit-font-smoothing: antialiased;
 }
@@ -28,63 +26,20 @@ body, html {
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;
-    padding-top: 30px;
-    padding-left: 55px;
-    padding-right: 40px;
-    padding-bottom: 120px;
+    padding: 30px 40px 120px 55px;
     box-sizing: border-box;
     overflow-y: auto;
 }
 
 .intro-text {
-    margin: 0 !important;
-    padding: 0 !important;
-    text-indent: 0 !important;
-    list-style: none;
+    margin: 0;
+    padding: 0;
     white-space: pre-wrap;
     word-break: keep-all;
-    display: block;
     width: 100%;
-    opacity: 0;
-    visibility: visible;
     font-weight: 600;
     line-height: 1.35;
     outline: none;
     caret-color: #000;
-    font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
-}
-
-.intro-text.typing-complete {
-    border-right: none;
-}
-
-.keyword {
-    display: inline;
-    font-weight: inherit;
-    cursor: default;
-}
-
-.keyword.bio-link {
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-
-.keyword.bio-link.highlight {
-    color: #00FF00 !important;
-}
-
-.editable-keyword {
-    display: inline;
-    position: relative;
-}
-
-.keyword-ghost {
-    color: rgba(0,0,0,0.5);
-    pointer-events: none;
-    user-select: none;
-}
-
-.keyword-input {
-    outline: none;
-    caret-color: #000;
+    opacity: 0;
 }
