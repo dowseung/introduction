@@ -67,6 +67,13 @@ window.addEventListener('load', async () => {
     await loadSheet();
     adjustFontSize();
     await typeWriter(textElement, originalText, 30);
+
+    /* 잠깐 대기 후 페이지 전체 위로 올라가며 전환 */
+    await new Promise(res => setTimeout(res, 600));
+    document.body.classList.add('slide-up');
+
+    await new Promise(res => setTimeout(res, 800));
+    window.location.href = 'bio.html';
 });
 
 window.addEventListener('resize', () => {
