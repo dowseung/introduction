@@ -313,8 +313,185 @@ function drawGroupOutlines(clickMsg) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => {
             if (clickMsg) clickMsg.style.opacity = '1';
+            enterMergeMode();
         }, 700);
     });
+
+    function enterMergeMode() {
+        const mergeKeywords = [];
+        allKeywords.forEach(kw => {
+            const clone = kw.cloneNode(true);
+            clone.dataset.mappedRow = kw.dataset.mappedRow;
+            clone.dataset.rowIdx = kw.dataset.rowIdx;
+            clone.dataset.rowIdxAll = kw.dataset.rowIdxAll;
+            kw.replaceWith(clone);
+            mergeKeywords.push(clone);
+        });
+
+        mergeKeywords.forEach(kw => {
+            kw.style.pointerEvents = 'auto';
+            kw.style.cursor = 'pointer';
+            kw.style.opacity = '1';
+
+            kw.addEventListener('mouseenter', () => {
+                const activeR = kw.dataset.mappedRow || kw.dataset.rowIdx;
+                mergeKeywords.forEach(k => {
+                    if ((k.dataset.mappedRow || k.dataset.rowIdx) === activeR) {
+                        k.style.opacity = '0.3';
+                    }
+                });
+                allBoxPaths.forEach(p => {
+                    if (p.dataset.row === activeR) p.style.opacity = '0.3';
+                });
+                allLinePaths.forEach(p => {
+                    if (p.dataset.row === activeR) p.style.opacity = '0.3';
+                });
+            });
+
+            kw.addEventListener('mouseleave', () => {
+                mergeKeywords.forEach(k => { k.style.opacity = '1'; });
+                allBoxPaths.forEach(p => { p.style.opacity = '1'; });
+                allLinePaths.forEach(p => { p.style.opacity = '1'; });
+            });
+
+            kw.addEventListener('click', e => {
+                e.stopPropagation();
+
+                const clickedRow = kw.dataset.mappedRow || kw.dataset.rowIdx;
+                if (!clickedRow) return;
+
+                const sameRowKws = mergeKeywords.filter(k =>
+                    (k.dataset.mappedRow || k.dataset.rowIdx) === clickedRow
+                );
+
+                sameRowKws.forEach(k => {
+                    k.style.transition = 'opacity 0.4s ease';
+                    k.style.opacity = '0';
+                });
+
+                document.querySelectorAll(`#connect-svg-boxes path[data-row="${clickedRow}"]`).forEach(p => {
+                    p.style.transition = 'opacity 0.4s ease';
+                    p.style.opacity = '0';
+                });
+                document.querySelectorAll(`#connect-svg-lines path[data-row="${clickedRow}"]`).forEach(p => {
+                    p.style.transition = 'opacity 0.4s ease';
+                    p.style.opacity = '0';
+                });
+
+                setTimeout(() => {
+                    sameRowKws.forEach(k => {
+                        k.style.visibility = 'hidden';
+                        k.style.pointerEvents = 'none';
+                    });
+                    document.querySelectorAll(`#connect-svg-boxes path[data-row="${clickedRow}"]`).forEach(p => {
+                        p.style.display = 'none';
+                    });
+                    document.querySelectorAll(`#connect-svg-lines path[data-row="${clickedRow}"]`).forEach(p => {
+                        p.style.display = 'none';
+                    });
+                }, 400);
+            });
+        });
+
+        /* 하단 버튼 */
+        const bottomBtn = document.createElement('div');
+        bottomBtn.id = 'bottom-btn';
+        bottomBtn.innerHTML = '';
+        page.appendChild(bottomBtn);
+
+        bottomBtn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            setTimeout(() => {
+                /* 연결선 숨기기 */
+                document.querySelectorAll('#connect-svg-lines path').forEach(p => {
+                    p.style.transition = 'opacity 0.4s ease';
+                    p.style.opacity = '0';
+                });
+
+                /* 기존 텍스트 숨기기 */
+                document.querySelectorAll('.bio-keyword').forEach(kw => {
+                    kw.style.transition = 'opacity 0.4s ease';
+                    kw.style.opacity = '0';
+                });
+
+                setTimeout(() => {
+                    document.querySelectorAll('#connect-svg-lines path').forEach(p => {
+                        p.style.display = 'none';
+                    });
+                    document.querySelectorAll('.bio-keyword').forEach(kw => {
+                        kw.style.visibility = 'hidden';
+                    });
+
+                    /* 기존 bio-text 숨기기 */
+                    const bioTextEl = document.getElementById('bio-text');
+                    if (bioTextEl) bioTextEl.style.visibility = 'hidden';
+
+                    /* 11개 열 리스트 생성 */
+                    const listContainer = document.createElement('div');
+                    listContainer.id = 'col-list';
+                    listContainer.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        display: flex;
+                        flex-direction: row;
+                        align-items: flex-start;
+                        padding: 30px 40px 120px 55px;
+                        box-sizing: border-box;
+                        gap: 2vw;
+                        opacity: 0;
+                        transition: opacity 0.4s ease;
+                        z-index: 3;
+                    `;
+
+                    for (let colIdx = 1; colIdx <= 11; colIdx++) {
+                        const col = document.createElement('div');
+                        col.style.cssText = `
+                            flex: 1;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: flex-start;
+                            gap: 0.5em;
+                        `;
+
+                        const vals = [];
+                        sheetRows.slice(1).forEach(row => {
+                            const cell = (row[colIdx] || '').trim();
+                            cell.split(/\r?\n/).forEach(v => {
+                                const val = v.trim();
+                                if (val && !vals.includes(val)) vals.push(val);
+                            });
+                        });
+
+                        vals.forEach(val => {
+                            const item = document.createElement('div');
+                            item.textContent = val;
+                            item.style.cssText = `
+                                font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
+                                font-size: clamp(8px, 1.2vw, 16px);
+                                font-weight: 600;
+                                line-height: 1.5;
+                                word-break: keep-all;
+                                text-align: left;
+                            `;
+                            col.appendChild(item);
+                        });
+
+                        listContainer.appendChild(col);
+                    }
+
+                    page.appendChild(listContainer);
+
+                    requestAnimationFrame(() => {
+                        listContainer.style.opacity = '1';
+                    });
+
+                }, 400);
+            }, 700);
+        });
+    }
 
     document.addEventListener('click', () => {
         if (activeRow) { activeRow = null; resetAll(); }
@@ -436,11 +613,17 @@ window.addEventListener('load', async () => {
 
     page.appendChild(p);
 
-    /* click the text 문구 */
     const clickMsg = document.createElement('div');
     clickMsg.id = 'click-msg';
-    clickMsg.innerHTML = 'CLICK THE TEXT';
+    clickMsg.innerHTML = 'CLICK<br>THE<br>TEXT';
     document.body.appendChild(clickMsg);
+
+    const scrollMsg = document.createElement('div');
+    scrollMsg.id = 'scroll-msg';
+    scrollMsg.innerHTML = 'READ<br>&amp;<br>SCROLL';
+    document.body.appendChild(scrollMsg);
+
+    setTimeout(() => { scrollMsg.style.opacity = '1'; }, 100);
 
     const switchBtn = document.createElement('div');
     switchBtn.id = 'switch-btn';
@@ -456,6 +639,8 @@ window.addEventListener('load', async () => {
             closeMenu();
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
+            scrollMsg.style.opacity = '1';
+            clickMsg.style.opacity = '0';
 
             document.querySelectorAll('.bio-keyword').forEach(kw => {
                 kw.style.pointerEvents = 'none';
@@ -473,6 +658,7 @@ window.addEventListener('load', async () => {
             });
 
         } else {
+            scrollMsg.style.opacity = '0';
             clickMsg.style.opacity = '0';
             switchBtn.style.display = 'none';
 
@@ -481,13 +667,29 @@ window.addEventListener('load', async () => {
             });
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            setTimeout(() => {
+
+            let scrollTimer = null;
+            const onScroll = () => {
+                clearTimeout(scrollTimer);
+                scrollTimer = setTimeout(() => {
+                    window.removeEventListener('scroll', onScroll);
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            drawGroupOutlines(clickMsg);
+                        });
+                    });
+                }, 100);
+            };
+
+            window.addEventListener('scroll', onScroll);
+
+            if (window.scrollY === 0) {
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         drawGroupOutlines(clickMsg);
                     });
                 });
-            }, 700);
+            }
         }
     });
 
