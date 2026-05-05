@@ -121,9 +121,10 @@ function openMenu(span) {
     activeSpan = span;
 }
 
-function drawGroupOutlines() {
+function drawGroupOutlines(clickMsg) {
     document.getElementById('connect-svg-lines')?.remove();
     document.getElementById('connect-svg-boxes')?.remove();
+    document.getElementById('top-btn')?.remove();
 
     const page = document.getElementById('bio-page');
     const svgStyle = `position:absolute;top:0;left:0;width:${page.scrollWidth}px;height:${page.scrollHeight}px;pointer-events:none;`;
@@ -158,8 +159,6 @@ function drawGroupOutlines() {
     const scrollY = window.scrollY;
     const scrollX = window.scrollX;
     const drawnRectKeys = new Set();
-
-    /* span → rowIdx 매핑 (화면상 위치 기반) */
     const spanToRow = new Map();
 
     Object.entries(groups).forEach(([rowIdx, spans]) => {
@@ -177,7 +176,6 @@ function drawGroupOutlines() {
                 drawnRectKeys.add(key);
                 rects.push({ x, y, w, h, span: s });
             });
-            /* span이 이 rowIdx 박스에 속함을 기록 */
             if (!spanToRow.has(s)) spanToRow.set(s, rowIdx);
         });
 
@@ -235,7 +233,6 @@ function drawGroupOutlines() {
         clone.dataset.colIdx = kw.dataset.colIdx;
         clone.dataset.rowIdx = kw.dataset.rowIdx;
         clone.dataset.rowIdxAll = kw.dataset.rowIdxAll;
-        /* spanToRow에서 원본 span의 rowIdx 가져와서 clone에 저장 */
         const mappedRow = spanToRow.get(kw);
         if (mappedRow) clone.dataset.mappedRow = mappedRow;
         kw.replaceWith(clone);
@@ -305,6 +302,20 @@ function drawGroupOutlines() {
         });
     });
 
+    /* TOP 버튼 */
+    const topBtn = document.createElement('div');
+    topBtn.id = 'top-btn';
+    topBtn.innerHTML = 'top';
+    page.appendChild(topBtn);
+
+    topBtn.addEventListener('click', () => {
+        topBtn.style.display = 'none';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => {
+            if (clickMsg) clickMsg.style.opacity = '1';
+        }, 700);
+    });
+
     document.addEventListener('click', () => {
         if (activeRow) { activeRow = null; resetAll(); }
     });
@@ -338,7 +349,6 @@ window.addEventListener('load', async () => {
         [clauseRows[i], clauseRows[j]] = [clauseRows[j], clauseRows[i]];
     }
 
-    /* val → 모든 {colIdx, rowIdx} 목록 */
     const valMap = {};
     sheetRows.slice(1).forEach((row, rowIdx) => {
         for (let colIdx = 1; colIdx <= 11; colIdx++) {
@@ -426,6 +436,12 @@ window.addEventListener('load', async () => {
 
     page.appendChild(p);
 
+    /* click the text 문구 */
+    const clickMsg = document.createElement('div');
+    clickMsg.id = 'click-msg';
+    clickMsg.innerHTML = 'CLICK THE TEXT';
+    document.body.appendChild(clickMsg);
+
     const switchBtn = document.createElement('div');
     switchBtn.id = 'switch-btn';
     switchBtn.innerHTML = 'hide';
@@ -439,6 +455,12 @@ window.addEventListener('load', async () => {
             switchBtn.innerHTML = 'connect';
             closeMenu();
 
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            document.querySelectorAll('.bio-keyword').forEach(kw => {
+                kw.style.pointerEvents = 'none';
+            });
+
             p.childNodes.forEach(node => {
                 if (node.nodeType === Node.TEXT_NODE) {
                     const span = document.createElement('span');
@@ -451,18 +473,21 @@ window.addEventListener('load', async () => {
             });
 
         } else {
+            clickMsg.style.opacity = '0';
             switchBtn.style.display = 'none';
 
             document.querySelectorAll('.bio-keyword').forEach(kw => {
                 kw.style.pointerEvents = 'none';
             });
 
-            window.scrollTo(0, 0);
-            requestAnimationFrame(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => {
                 requestAnimationFrame(() => {
-                    drawGroupOutlines();
+                    requestAnimationFrame(() => {
+                        drawGroupOutlines(clickMsg);
+                    });
                 });
-            });
+            }, 700);
         }
     });
 
@@ -473,7 +498,7 @@ window.addEventListener('load', async () => {
         window.scrollTo(0, 0);
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                drawGroupOutlines();
+                drawGroupOutlines(clickMsg);
             });
         });
     });
@@ -483,4 +508,16 @@ window.addEventListener('load', async () => {
             closeMenu();
         }
     });
+
+    const backBtn = document.getElementById('back-btn');
+    if (backBtn) {
+        if (window.history.length > 1) {
+            backBtn.style.display = 'flex';
+            backBtn.addEventListener('click', () => {
+                window.history.back();
+            });
+        } else {
+            backBtn.style.display = 'none';
+        }
+    }
 });

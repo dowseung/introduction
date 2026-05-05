@@ -79,6 +79,7 @@ body.slide-up {
     animation: slideUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+
 @keyframes slideUp {
     from { transform: translateY(100%); }
     to   { transform: translateY(0); }
@@ -124,4 +125,49 @@ body.slide-up {
 #switch-btn.on {
     background: #000;
     color: #fff;
+}
+
+#back-btn {
+    position: fixed;
+    top: 24px;
+    left: 40px;
+    z-index: 200;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+#top-btn {
+    display: block;
+    margin: 40px auto 80px;
+    cursor: pointer;
+    padding: 8px 24px;
+    border: 1.5px solid #000;
+    font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    background: transparent;
+    letter-spacing: 0.05em;
+    width: fit-content;
+    text-align: center;
+}
+
+#click-msg {
+    position: fixed;
+    top: 30px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-weight: 600;
+    font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
+    color: #00FF00;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+    z-index: 0;
+    font-size: 12vw;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
 }
