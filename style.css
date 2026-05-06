@@ -175,6 +175,7 @@ body.slide-up {
     transform: rotate(-45deg);
     box-sizing: border-box;
 }
+
 #click-msg {
     position: fixed;
     top: 0;
@@ -201,6 +202,21 @@ body.slide-up {
 }
 
 #bottom-btn {
+    display: block;
+    margin: 40px auto 80px;
+    cursor: pointer;
+    padding: 8px 24px;
+    border: 1.5px solid #000;
+    font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    background: transparent;
+    letter-spacing: 0.05em;
+    width: fit-content;
+    text-align: center;
+}
+
+#bottom-btn-2 {
     display: block;
     margin: 40px auto 80px;
     cursor: pointer;

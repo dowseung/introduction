@@ -269,6 +269,7 @@ function drawGroupOutlines(clickMsg) {
         kw.style.cursor = 'pointer';
 
         kw.addEventListener('mouseenter', () => {
+            if (clickMsg) clickMsg.style.opacity = '0';
             if (activeRow) return;
             const activeR = getMappedRow(kw);
             if (!activeR) return;
@@ -286,11 +287,13 @@ function drawGroupOutlines(clickMsg) {
 
         kw.addEventListener('mouseleave', () => {
             if (activeRow) return;
+            if (clickMsg) clickMsg.style.opacity = '1';
             resetAll();
         });
 
         kw.addEventListener('click', e => {
             e.stopPropagation();
+            if (clickMsg) clickMsg.style.opacity = '0';
             const clickedRow = getMappedRow(kw);
             if (activeRow === clickedRow) {
                 activeRow = null;
@@ -302,7 +305,6 @@ function drawGroupOutlines(clickMsg) {
         });
     });
 
-    /* TOP 버튼 */
     const topBtn = document.createElement('div');
     topBtn.id = 'top-btn';
     topBtn.innerHTML = 'top';
@@ -312,8 +314,16 @@ function drawGroupOutlines(clickMsg) {
         topBtn.style.display = 'none';
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => {
-            if (clickMsg) clickMsg.style.opacity = '1';
-            enterMergeMode();
+            clickMsg.style.opacity = '0';
+            setTimeout(() => {
+                clickMsg.innerHTML = 'CLICK<br>THE<br>TEXT';
+                clickMsg.style.fontSize = 'clamp(8vw, 30vw, 33vh)';
+                clickMsg.style.lineHeight = '0.95';
+                clickMsg.style.justifyContent = 'flex-start';
+                clickMsg.style.paddingTop = '10px';
+                clickMsg.style.opacity = '1';
+                enterMergeMode();
+            }, 500);
         }, 700);
     });
 
@@ -356,7 +366,6 @@ function drawGroupOutlines(clickMsg) {
 
             kw.addEventListener('click', e => {
                 e.stopPropagation();
-
                 const clickedRow = kw.dataset.mappedRow || kw.dataset.rowIdx;
                 if (!clickedRow) return;
 
@@ -368,7 +377,6 @@ function drawGroupOutlines(clickMsg) {
                     k.style.transition = 'opacity 0.4s ease';
                     k.style.opacity = '0';
                 });
-
                 document.querySelectorAll(`#connect-svg-boxes path[data-row="${clickedRow}"]`).forEach(p => {
                     p.style.transition = 'opacity 0.4s ease';
                     p.style.opacity = '0';
@@ -393,7 +401,7 @@ function drawGroupOutlines(clickMsg) {
             });
         });
 
-        /* 하단 버튼 */
+        /* 하단 버튼 1 */
         const bottomBtn = document.createElement('div');
         bottomBtn.id = 'bottom-btn';
         bottomBtn.innerHTML = '';
@@ -403,57 +411,69 @@ function drawGroupOutlines(clickMsg) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             setTimeout(() => {
-                /* 연결선 숨기기 */
-                document.querySelectorAll('#connect-svg-lines path').forEach(p => {
-                    p.style.transition = 'opacity 0.4s ease';
-                    p.style.opacity = '0';
-                });
+                const svgLinesEl = document.getElementById('connect-svg-lines');
+                const svgBoxesEl = document.getElementById('connect-svg-boxes');
+                if (svgLinesEl) {
+                    svgLinesEl.style.transition = 'opacity 0.4s ease';
+                    svgLinesEl.style.opacity = '0';
+                }
+                if (svgBoxesEl) {
+                    svgBoxesEl.style.transition = 'opacity 0.4s ease';
+                    svgBoxesEl.style.opacity = '0';
+                }
 
-                /* 기존 텍스트 숨기기 */
                 document.querySelectorAll('.bio-keyword').forEach(kw => {
                     kw.style.transition = 'opacity 0.4s ease';
                     kw.style.opacity = '0';
                 });
 
+                if (clickMsg) {
+                    clickMsg.innerHTML = 'DESIGNER<br>NAME<br>JOB<br>SCHOOL<br>MAJOR<br>ORGANIZATION<br>BOOK<br>EXHIBITION<br>TIME<br>PLACE<br>SPACE';
+                    clickMsg.style.fontSize = 'clamp(4px, 9vh, 9vw)';
+                    clickMsg.style.lineHeight = '0.95';
+                    clickMsg.style.justifyContent = 'flex-start';
+                    clickMsg.style.paddingTop = '0';
+                    clickMsg.style.opacity = '1';
+                }
+
                 setTimeout(() => {
-                    document.querySelectorAll('#connect-svg-lines path').forEach(p => {
-                        p.style.display = 'none';
-                    });
+                    if (svgLinesEl) svgLinesEl.style.display = 'none';
+                    if (svgBoxesEl) svgBoxesEl.style.display = 'none';
+
                     document.querySelectorAll('.bio-keyword').forEach(kw => {
                         kw.style.visibility = 'hidden';
                     });
 
-                    /* 기존 bio-text 숨기기 */
                     const bioTextEl = document.getElementById('bio-text');
-                    if (bioTextEl) bioTextEl.style.visibility = 'hidden';
+                    if (bioTextEl) bioTextEl.style.display = 'none';
 
-                    /* 11개 열 리스트 생성 */
                     const listContainer = document.createElement('div');
                     listContainer.id = 'col-list';
                     listContainer.style.cssText = `
-                        position: absolute;
-                        top: 0;
-                        left: 0;
+                        position: relative;
                         width: 100%;
                         display: flex;
                         flex-direction: row;
                         align-items: flex-start;
-                        padding: 30px 40px 120px 55px;
+                        flex-wrap: nowrap;
+                        padding: 30px 2vw 40px 2vw;
                         box-sizing: border-box;
-                        gap: 2vw;
+                        gap: 1vw;
                         opacity: 0;
                         transition: opacity 0.4s ease;
                         z-index: 3;
+                        overflow-x: hidden;
                     `;
 
                     for (let colIdx = 1; colIdx <= 11; colIdx++) {
                         const col = document.createElement('div');
                         col.style.cssText = `
-                            flex: 1;
+                            flex: 1 1 0;
+                            min-width: 0;
                             display: flex;
                             flex-direction: column;
                             align-items: flex-start;
-                            gap: 0.5em;
+                            gap: 0.3em;
                         `;
 
                         const vals = [];
@@ -470,11 +490,13 @@ function drawGroupOutlines(clickMsg) {
                             item.textContent = val;
                             item.style.cssText = `
                                 font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
-                                font-size: clamp(8px, 1.2vw, 16px);
+                                font-size: clamp(6px, 1vw, 14px);
                                 font-weight: 600;
                                 line-height: 1.5;
-                                word-break: keep-all;
+                                word-break: break-all;
                                 text-align: left;
+                                width: 100%;
+                                overflow: hidden;
                             `;
                             col.appendChild(item);
                         });
@@ -482,10 +504,165 @@ function drawGroupOutlines(clickMsg) {
                         listContainer.appendChild(col);
                     }
 
+                    page.style.paddingTop = '0';
+                    page.style.height = 'auto';
+                    page.style.minHeight = '0';
+                    page.style.overflow = 'visible';
                     page.appendChild(listContainer);
 
                     requestAnimationFrame(() => {
                         listContainer.style.opacity = '1';
+
+                        bottomBtn.remove();
+
+                        const bottomBtn2 = document.createElement('div');
+                        bottomBtn2.id = 'bottom-btn-2';
+                        bottomBtn2.innerHTML = '';
+                        page.appendChild(bottomBtn2);
+
+                        bottomBtn2.addEventListener('click', () => {
+                            bottomBtn2.remove();
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                            setTimeout(() => {
+                                window.scrollTo(0, 0);
+
+                                requestAnimationFrame(() => {
+                                    requestAnimationFrame(() => {
+                                        /* rowIdx 데이터 수집 */
+                                        const colEls = listContainer.querySelectorAll(':scope > div');
+                                        colEls.forEach((col, colIdx) => {
+                                            const items = col.querySelectorAll('div');
+                                            items.forEach(item => {
+                                                const text = item.textContent.trim();
+                                                sheetRows.slice(1).forEach((row, rowIdx) => {
+                                                    const cell = (row[colIdx + 1] || '').trim();
+                                                    cell.split(/\r?\n/).forEach(v => {
+                                                        if (v.trim() === text) {
+                                                            item.dataset.rowIdx = rowIdx;
+                                                            item.dataset.colIdx = colIdx + 1;
+                                                        }
+                                                    });
+                                                });
+                                            });
+                                        });
+
+                                        const existingSvg = document.getElementById('family-svg');
+                                        if (existingSvg) existingSvg.remove();
+
+                                        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                                        svg.id = 'family-svg';
+                                        svg.style.cssText = `
+                                            position: absolute;
+                                            top: 0; left: 0;
+                                            width: 100%; height: 100%;
+                                            pointer-events: none;
+                                            z-index: 4;
+                                            overflow: visible;
+                                        `;
+                                        page.appendChild(svg);
+
+                                        const pageBCR2 = page.getBoundingClientRect();
+
+                                        const rowGroups = {};
+                                        const allItems = listContainer.querySelectorAll('div[data-row-idx]');
+                                        allItems.forEach(item => {
+                                            const rowIdx = item.dataset.rowIdx;
+                                            const colIdx = parseInt(item.dataset.colIdx);
+                                            if (!rowGroups[rowIdx]) rowGroups[rowIdx] = [];
+                                            rowGroups[rowIdx].push({ colIdx, el: item });
+                                        });
+
+                                        Object.values(rowGroups).forEach(group => {
+                                            group.sort((a, b) => a.colIdx - b.colIdx);
+
+                                            let i = 0;
+                                            while (i < group.length) {
+                                                const source = group[i];
+                                                const targets = [];
+
+                                                let j = i + 1;
+                                                while (j < group.length && group[j].colIdx === source.colIdx + 1) {
+                                                    targets.push(group[j]);
+                                                    j++;
+                                                }
+
+                                                if (targets.length > 0) {
+                                                    const r1 = source.el.getBoundingClientRect();
+                                                    const srcX = r1.right - pageBCR2.left;
+                                                    const srcY = r1.top + r1.height / 2 - pageBCR2.top + window.scrollY;
+
+                                                    if (targets.length === 1) {
+                                                        const r2 = targets[0].el.getBoundingClientRect();
+                                                        const tgtX = r2.left - pageBCR2.left;
+                                                        const tgtY = r2.top + r2.height / 2 - pageBCR2.top + window.scrollY;
+                                                        const midX = (srcX + tgtX) / 2;
+
+                                                        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                                                        path.setAttribute('d', `M ${srcX} ${srcY} C ${midX} ${srcY} ${midX} ${tgtY} ${tgtX} ${tgtY}`);
+                                                        path.setAttribute('fill', 'none');
+                                                        path.setAttribute('stroke', '#000');
+                                                        path.setAttribute('stroke-width', '1');
+                                                        path.setAttribute('stroke-linecap', 'round');
+                                                        svg.appendChild(path);
+                                                    } else {
+                                                        const tgtYs = targets.map(t => {
+                                                            const r2 = t.el.getBoundingClientRect();
+                                                            return r2.top + r2.height / 2 - pageBCR2.top + window.scrollY;
+                                                        });
+                                                        const tgtX = targets[0].el.getBoundingClientRect().left - pageBCR2.left;
+                                                        const midX = (srcX + tgtX) / 2;
+
+                                                        const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                                                        hLine.setAttribute('x1', srcX);
+                                                        hLine.setAttribute('y1', srcY);
+                                                        hLine.setAttribute('x2', midX);
+                                                        hLine.setAttribute('y2', srcY);
+                                                        hLine.setAttribute('stroke', '#000');
+                                                        hLine.setAttribute('stroke-width', '1');
+                                                        hLine.setAttribute('stroke-linecap', 'round');
+                                                        svg.appendChild(hLine);
+
+                                                        const minY = Math.min(...tgtYs);
+                                                        const maxY = Math.max(...tgtYs);
+                                                        const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                                                        vLine.setAttribute('x1', midX);
+                                                        vLine.setAttribute('y1', minY);
+                                                        vLine.setAttribute('x2', midX);
+                                                        vLine.setAttribute('y2', maxY);
+                                                        vLine.setAttribute('stroke', '#000');
+                                                        vLine.setAttribute('stroke-width', '1');
+                                                        vLine.setAttribute('stroke-linecap', 'round');
+                                                        svg.appendChild(vLine);
+
+                                                        targets.forEach((t, ti) => {
+                                                            const r2 = t.el.getBoundingClientRect();
+                                                            const tgtXi = r2.left - pageBCR2.left;
+                                                            const tgtYi = tgtYs[ti];
+
+                                                            const hLine2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                                                            hLine2.setAttribute('x1', midX);
+                                                            hLine2.setAttribute('y1', tgtYi);
+                                                            hLine2.setAttribute('x2', tgtXi);
+                                                            hLine2.setAttribute('y2', tgtYi);
+                                                            hLine2.setAttribute('stroke', '#000');
+                                                            hLine2.setAttribute('stroke-width', '1');
+                                                            hLine2.setAttribute('stroke-linecap', 'round');
+                                                            svg.appendChild(hLine2);
+                                                        });
+                                                    }
+                                                }
+                                                i = j > i + 1 ? j : i + 1;
+                                            }
+                                        });
+
+                                        page.style.height = 'auto';
+                                        page.style.minHeight = '0';
+                                        page.style.overflow = 'visible';
+                                    });
+                                });
+                            }, 700);
+                        });
                     });
 
                 }, 400);
@@ -662,6 +839,15 @@ window.addEventListener('load', async () => {
             clickMsg.style.opacity = '0';
             switchBtn.style.display = 'none';
 
+            clickMsg.innerHTML = 'HOVER';
+            clickMsg.style.fontSize = 'clamp(8vw, 30vw, 33vh)';
+            clickMsg.style.lineHeight = '1';
+            clickMsg.style.justifyContent = 'center';
+            clickMsg.style.paddingTop = '0';
+            setTimeout(() => {
+                clickMsg.style.opacity = '1';
+            }, 800);
+
             document.querySelectorAll('.bio-keyword').forEach(kw => {
                 kw.style.pointerEvents = 'none';
             });
@@ -694,6 +880,7 @@ window.addEventListener('load', async () => {
     });
 
     window.addEventListener('resize', () => {
+        if (document.getElementById('col-list')) return;
         const svgLines = document.getElementById('connect-svg-lines');
         const svgBoxes = document.getElementById('connect-svg-boxes');
         if (!svgLines && !svgBoxes) return;
