@@ -4,6 +4,11 @@ let sheetRows = [];
 let activeMenu = null;
 let activeSpan = null;
 
+const arrowSVG = `<svg viewBox="0 0 110 60" width="33vw" height="16.5vw" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;">
+    <line x1="0" y1="30" x2="95" y2="30" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+    <polyline points="75,10 95,30 75,50" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
 function parseCSV(text) {
     const rows = [];
     let row = [], cell = '', inQ = false;
@@ -269,7 +274,6 @@ function drawGroupOutlines(clickMsg) {
         kw.style.cursor = 'pointer';
 
         kw.addEventListener('mouseenter', () => {
-            if (clickMsg) clickMsg.style.opacity = '0';
             if (activeRow) return;
             const activeR = getMappedRow(kw);
             if (!activeR) return;
@@ -287,13 +291,11 @@ function drawGroupOutlines(clickMsg) {
 
         kw.addEventListener('mouseleave', () => {
             if (activeRow) return;
-            if (clickMsg) clickMsg.style.opacity = '1';
             resetAll();
         });
 
         kw.addEventListener('click', e => {
             e.stopPropagation();
-            if (clickMsg) clickMsg.style.opacity = '0';
             const clickedRow = getMappedRow(kw);
             if (activeRow === clickedRow) {
                 activeRow = null;
@@ -307,24 +309,19 @@ function drawGroupOutlines(clickMsg) {
 
     const topBtn = document.createElement('div');
     topBtn.id = 'top-btn';
-    topBtn.innerHTML = 'top';
+    topBtn.innerHTML = arrowSVG;
     page.appendChild(topBtn);
 
     topBtn.addEventListener('click', () => {
         topBtn.style.display = 'none';
+        clickMsg.style.opacity = '0';
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => {
-            clickMsg.style.opacity = '0';
+            enterMergeMode();
             setTimeout(() => {
-                clickMsg.innerHTML = 'CLICK<br>THE<br>TEXT';
-                clickMsg.style.fontSize = 'clamp(8vw, 30vw, 33vh)';
-                clickMsg.style.lineHeight = '0.95';
-                clickMsg.style.justifyContent = 'flex-start';
-                clickMsg.style.paddingTop = '10px';
-                clickMsg.style.opacity = '1';
-                enterMergeMode();
-            }, 500);
-        }, 700);
+                document.getElementById('bottom-btn')?.click();
+            }, 100);
+        }, 300);
     });
 
     function enterMergeMode() {
@@ -404,7 +401,7 @@ function drawGroupOutlines(clickMsg) {
         /* 하단 버튼 1 */
         const bottomBtn = document.createElement('div');
         bottomBtn.id = 'bottom-btn';
-        bottomBtn.innerHTML = '';
+        bottomBtn.innerHTML = arrowSVG;
         page.appendChild(bottomBtn);
 
         bottomBtn.addEventListener('click', () => {
@@ -428,11 +425,17 @@ function drawGroupOutlines(clickMsg) {
                 });
 
                 if (clickMsg) {
-                    clickMsg.innerHTML = 'DESIGNER<br>NAME<br>JOB<br>SCHOOL<br>MAJOR<br>ORGANIZATION<br>BOOK<br>EXHIBITION<br>TIME<br>PLACE<br>SPACE';
-                    clickMsg.style.fontSize = 'clamp(4px, 9vh, 9vw)';
-                    clickMsg.style.lineHeight = '0.95';
+                    const lines = ['DESIGNER','NAME','JOB','SCHOOL','MAJOR','ORGANIZATION','BOOK','EXHIBITION','TIME','PLACE','SPACE'];
+                    clickMsg.innerHTML = lines.map(l =>
+                        `<span class="label-line" style="display:block;font-weight:100;">${l}</span>`
+                    ).join('');
+                    clickMsg.style.fontSize = 'clamp(4px, 8.5vh, 8.5vw)';
+                    clickMsg.style.lineHeight = '1.05';
                     clickMsg.style.justifyContent = 'flex-start';
+                    clickMsg.style.alignItems = 'center';  /* ← center로 복원 */
                     clickMsg.style.paddingTop = '0';
+                    clickMsg.style.letterSpacing = '0';     /* ← 초기화 */
+                    clickMsg.style.overflow = 'hidden';     /* ← 초기화 */
                     clickMsg.style.opacity = '1';
                 }
 
@@ -476,6 +479,23 @@ function drawGroupOutlines(clickMsg) {
                             gap: 0.3em;
                         `;
 
+                        /* 형광초록 글씨 줄과 연동 */
+                        const labels = ['DESIGNER','NAME','JOB','SCHOOL','MAJOR','ORGANIZATION','BOOK','EXHIBITION','TIME','PLACE','SPACE'];
+                        const labelIndex = colIdx - 1;
+
+                        col.addEventListener('mouseenter', () => {
+                            const spans = clickMsg.querySelectorAll('.label-line');
+                            spans.forEach((s, i) => {
+                                s.style.fontWeight = i === labelIndex ? '500' : '100';
+                            });
+                        });
+
+                        col.addEventListener('mouseleave', () => {
+                            clickMsg.querySelectorAll('.label-line').forEach(s => {
+                                s.style.fontWeight = '100';
+                            });
+                        });
+
                         const vals = [];
                         sheetRows.slice(1).forEach(row => {
                             const cell = (row[colIdx] || '').trim();
@@ -485,19 +505,57 @@ function drawGroupOutlines(clickMsg) {
                             });
                         });
 
-                        vals.forEach(val => {
+                        vals.forEach((val, valIdx) => {
                             const item = document.createElement('div');
                             item.textContent = val;
+
+                            /* rowIdx 바로 저장 */
+                            sheetRows.slice(1).forEach((row, rowIdx) => {
+                                const cell = (row[colIdx] || '').trim();
+                                cell.split(/\r?\n/).forEach(v => {
+                                    if (v.trim() === val) {
+                                        item.dataset.rowIdx = rowIdx;
+                                        item.dataset.colIdx = colIdx;
+                                    }
+                                });
+                            });
+
                             item.style.cssText = `
                                 font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
                                 font-size: clamp(6px, 1vw, 14px);
                                 font-weight: 600;
                                 line-height: 1.5;
-                                word-break: break-all;
+                                word-break: keep-all;
+                                overflow-wrap: normal;
+                                hyphens: none;
                                 text-align: left;
+                                display: block;
                                 width: 100%;
                                 overflow: hidden;
+                                cursor: pointer;
+                                transition: outline 0.1s ease;
                             `;
+
+                            item.addEventListener('mouseenter', () => {
+                                const hoverRow = item.dataset.rowIdx;
+                                if (!hoverRow) return;
+                                document.querySelectorAll('#col-list div[data-row-idx]').forEach(k => {
+                                    if (k.dataset.rowIdx === hoverRow) {
+                                        const h = k.getBoundingClientRect().height;
+                                        const radius = Math.min(h / 2, 8);
+                                        k.style.boxShadow = `0 0 0 1.5px #000`;
+                                        k.style.borderRadius = `${radius}px`;
+                                    }
+                                });
+                            });
+
+                            item.addEventListener('mouseleave', () => {
+                                document.querySelectorAll('#col-list div[data-row-idx]').forEach(k => {
+                                    k.style.boxShadow = 'none';
+                                    k.style.borderRadius = '0';
+                                });
+                            });
+
                             col.appendChild(item);
                         });
 
@@ -517,151 +575,15 @@ function drawGroupOutlines(clickMsg) {
 
                         const bottomBtn2 = document.createElement('div');
                         bottomBtn2.id = 'bottom-btn-2';
-                        bottomBtn2.innerHTML = '';
+                        bottomBtn2.innerHTML = arrowSVG;   
                         page.appendChild(bottomBtn2);
 
                         bottomBtn2.addEventListener('click', () => {
                             bottomBtn2.remove();
                             window.scrollTo({ top: 0, behavior: 'smooth' });
-
                             setTimeout(() => {
-                                window.scrollTo(0, 0);
-
-                                requestAnimationFrame(() => {
-                                    requestAnimationFrame(() => {
-                                        /* rowIdx 데이터 수집 */
-                                        const colEls = listContainer.querySelectorAll(':scope > div');
-                                        colEls.forEach((col, colIdx) => {
-                                            const items = col.querySelectorAll('div');
-                                            items.forEach(item => {
-                                                const text = item.textContent.trim();
-                                                sheetRows.slice(1).forEach((row, rowIdx) => {
-                                                    const cell = (row[colIdx + 1] || '').trim();
-                                                    cell.split(/\r?\n/).forEach(v => {
-                                                        if (v.trim() === text) {
-                                                            item.dataset.rowIdx = rowIdx;
-                                                            item.dataset.colIdx = colIdx + 1;
-                                                        }
-                                                    });
-                                                });
-                                            });
-                                        });
-
-                                        const existingSvg = document.getElementById('family-svg');
-                                        if (existingSvg) existingSvg.remove();
-
-                                        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                                        svg.id = 'family-svg';
-                                        svg.style.cssText = `
-                                            position: absolute;
-                                            top: 0; left: 0;
-                                            width: 100%; height: 100%;
-                                            pointer-events: none;
-                                            z-index: 4;
-                                            overflow: visible;
-                                        `;
-                                        page.appendChild(svg);
-
-                                        const pageBCR2 = page.getBoundingClientRect();
-
-                                        const rowGroups = {};
-                                        const allItems = listContainer.querySelectorAll('div[data-row-idx]');
-                                        allItems.forEach(item => {
-                                            const rowIdx = item.dataset.rowIdx;
-                                            const colIdx = parseInt(item.dataset.colIdx);
-                                            if (!rowGroups[rowIdx]) rowGroups[rowIdx] = [];
-                                            rowGroups[rowIdx].push({ colIdx, el: item });
-                                        });
-
-                                        Object.values(rowGroups).forEach(group => {
-                                            group.sort((a, b) => a.colIdx - b.colIdx);
-
-                                            let i = 0;
-                                            while (i < group.length) {
-                                                const source = group[i];
-                                                const targets = [];
-
-                                                let j = i + 1;
-                                                while (j < group.length && group[j].colIdx === source.colIdx + 1) {
-                                                    targets.push(group[j]);
-                                                    j++;
-                                                }
-
-                                                if (targets.length > 0) {
-                                                    const r1 = source.el.getBoundingClientRect();
-                                                    const srcX = r1.right - pageBCR2.left;
-                                                    const srcY = r1.top + r1.height / 2 - pageBCR2.top + window.scrollY;
-
-                                                    if (targets.length === 1) {
-                                                        const r2 = targets[0].el.getBoundingClientRect();
-                                                        const tgtX = r2.left - pageBCR2.left;
-                                                        const tgtY = r2.top + r2.height / 2 - pageBCR2.top + window.scrollY;
-                                                        const midX = (srcX + tgtX) / 2;
-
-                                                        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                                                        path.setAttribute('d', `M ${srcX} ${srcY} C ${midX} ${srcY} ${midX} ${tgtY} ${tgtX} ${tgtY}`);
-                                                        path.setAttribute('fill', 'none');
-                                                        path.setAttribute('stroke', '#000');
-                                                        path.setAttribute('stroke-width', '1');
-                                                        path.setAttribute('stroke-linecap', 'round');
-                                                        svg.appendChild(path);
-                                                    } else {
-                                                        const tgtYs = targets.map(t => {
-                                                            const r2 = t.el.getBoundingClientRect();
-                                                            return r2.top + r2.height / 2 - pageBCR2.top + window.scrollY;
-                                                        });
-                                                        const tgtX = targets[0].el.getBoundingClientRect().left - pageBCR2.left;
-                                                        const midX = (srcX + tgtX) / 2;
-
-                                                        const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                                                        hLine.setAttribute('x1', srcX);
-                                                        hLine.setAttribute('y1', srcY);
-                                                        hLine.setAttribute('x2', midX);
-                                                        hLine.setAttribute('y2', srcY);
-                                                        hLine.setAttribute('stroke', '#000');
-                                                        hLine.setAttribute('stroke-width', '1');
-                                                        hLine.setAttribute('stroke-linecap', 'round');
-                                                        svg.appendChild(hLine);
-
-                                                        const minY = Math.min(...tgtYs);
-                                                        const maxY = Math.max(...tgtYs);
-                                                        const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                                                        vLine.setAttribute('x1', midX);
-                                                        vLine.setAttribute('y1', minY);
-                                                        vLine.setAttribute('x2', midX);
-                                                        vLine.setAttribute('y2', maxY);
-                                                        vLine.setAttribute('stroke', '#000');
-                                                        vLine.setAttribute('stroke-width', '1');
-                                                        vLine.setAttribute('stroke-linecap', 'round');
-                                                        svg.appendChild(vLine);
-
-                                                        targets.forEach((t, ti) => {
-                                                            const r2 = t.el.getBoundingClientRect();
-                                                            const tgtXi = r2.left - pageBCR2.left;
-                                                            const tgtYi = tgtYs[ti];
-
-                                                            const hLine2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                                                            hLine2.setAttribute('x1', midX);
-                                                            hLine2.setAttribute('y1', tgtYi);
-                                                            hLine2.setAttribute('x2', tgtXi);
-                                                            hLine2.setAttribute('y2', tgtYi);
-                                                            hLine2.setAttribute('stroke', '#000');
-                                                            hLine2.setAttribute('stroke-width', '1');
-                                                            hLine2.setAttribute('stroke-linecap', 'round');
-                                                            svg.appendChild(hLine2);
-                                                        });
-                                                    }
-                                                }
-                                                i = j > i + 1 ? j : i + 1;
-                                            }
-                                        });
-
-                                        page.style.height = 'auto';
-                                        page.style.minHeight = '0';
-                                        page.style.overflow = 'visible';
-                                    });
-                                });
-                            }, 700);
+                                window.location.href = 'next.html';
+                            }, 300);
                         });
                     });
 
@@ -797,14 +719,21 @@ window.addEventListener('load', async () => {
 
     const scrollMsg = document.createElement('div');
     scrollMsg.id = 'scroll-msg';
-    scrollMsg.innerHTML = 'READ<br>&amp;<br>SCROLL';
+    scrollMsg.innerHTML = `
+        <span style="display:inline-block;transform:rotate(-45deg)">R</span><span style="display:inline-block;transform:rotate(-45deg)">E</span><span style="display:inline-block;transform:rotate(-45deg)">A</span><span style="display:inline-block;transform:rotate(-45deg)">D</span>
+        <br>
+        <span style="display:inline-block;transform:rotate(-45deg)">&amp;</span>
+        <br>
+        <span style="display:inline-block;transform:rotate(-45deg)">S</span><span style="display:inline-block;transform:rotate(-45deg)">C</span><span style="display:inline-block;transform:rotate(-45deg)">R</span><span style="display:inline-block;transform:rotate(-45deg)">O</span><span style="display:inline-block;transform:rotate(-45deg)">L</span><span style="display:inline-block;transform:rotate(-45deg)">L</span>
+    `;
     document.body.appendChild(scrollMsg);
+
 
     setTimeout(() => { scrollMsg.style.opacity = '1'; }, 100);
 
     const switchBtn = document.createElement('div');
     switchBtn.id = 'switch-btn';
-    switchBtn.innerHTML = 'hide';
+    switchBtn.innerHTML = arrowSVG; 
     p.insertAdjacentElement('afterend', switchBtn);
 
     let hidden = false;
@@ -812,47 +741,114 @@ window.addEventListener('load', async () => {
     switchBtn.addEventListener('click', () => {
         if (!hidden) {
             hidden = true;
-            switchBtn.innerHTML = 'connect';
+            switchBtn.innerHTML = arrowSVG;  
             closeMenu();
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            scrollMsg.style.opacity = '1';
             clickMsg.style.opacity = '0';
+            scrollMsg.style.opacity = '0';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => {
+                clickMsg.innerHTML = 'FILL<br>IN THE<br>BLANK';
+                clickMsg.style.fontSize = 'clamp(8vw, 30vw, 33vh)';
+                clickMsg.style.lineHeight = '0.95';
+                clickMsg.style.justifyContent = 'flex-start';
+                clickMsg.style.paddingTop = '10px';
+                clickMsg.style.opacity = '1';
+            }, 600);
 
             document.querySelectorAll('.bio-keyword').forEach(kw => {
                 kw.style.pointerEvents = 'none';
+                kw.style.visibility = 'hidden'; /* 키워드 숨기기 */
             });
 
-            p.childNodes.forEach(node => {
-                if (node.nodeType === Node.TEXT_NODE) {
-                    const span = document.createElement('span');
-                    span.textContent = node.textContent;
-                    span.style.visibility = 'hidden';
-                    node.replaceWith(span);
-                } else if (node.nodeType === Node.ELEMENT_NODE && !node.classList.contains('bio-keyword')) {
-                    node.style.visibility = 'hidden';
-                }
+            p.style.height = p.offsetHeight + 'px';
+            p.style.overflow = 'hidden';
+
+            /* 일반 텍스트 보이기 */
+            requestAnimationFrame(() => {
+                const nodes = Array.from(p.childNodes);
+                nodes.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const span = document.createElement('span');
+                        span.textContent = node.textContent;
+                        span.className = 'plain-text';
+                        span.style.visibility = 'visible';
+                        node.replaceWith(span);
+                    } else if (node.nodeType === Node.ELEMENT_NODE && !node.classList.contains('bio-keyword')) {
+                        node.style.visibility = 'visible';
+                        node.classList.add('plain-text');
+                    } else if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('bio-keyword')) {
+                        const input = document.createElement('span');
+                        input.contentEditable = 'true';
+                        input.className = 'fill-blank';
+                        input.style.cssText = `
+                            display: inline-block;
+                            min-width: 4em;
+                            border-bottom: 1.5px solid #000;
+                            outline: none;
+                            font-family: inherit;
+                            font-size: inherit;
+                            font-weight: inherit;
+                            color: #000;
+                            cursor: text;
+                            padding: 0 2px;
+                        `;
+                        input.addEventListener('keydown', e => {
+                            if (input.textContent.length === 0 && e.key === 'Backspace') {
+                                e.preventDefault();
+                            }
+                        });
+                        node.style.visibility = 'hidden';
+                        node.insertAdjacentElement('afterend', input);
+                    }
+                });
             });
 
         } else {
+            /* fill-blank 제거 */
+            document.querySelectorAll('.fill-blank').forEach(el => el.remove());
+
+            p.style.height = '';
+            p.style.overflow = '';
+
+            /* plain-text 숨기기 */
+            document.querySelectorAll('.plain-text').forEach(el => {
+                el.style.visibility = 'hidden';
+            });
+
+            /* 키워드 다시 보이기 */
+            document.querySelectorAll('.bio-keyword').forEach(kw => {
+                kw.style.visibility = 'visible';
+                kw.style.pointerEvents = 'none';
+            });
+
             scrollMsg.style.opacity = '0';
             clickMsg.style.opacity = '0';
             switchBtn.style.display = 'none';
 
-            clickMsg.innerHTML = 'HOVER';
-            clickMsg.style.fontSize = 'clamp(8vw, 30vw, 33vh)';
-            clickMsg.style.lineHeight = '1';
-            clickMsg.style.justifyContent = 'center';
-            clickMsg.style.paddingTop = '0';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
             setTimeout(() => {
+                clickMsg.innerHTML = `
+                <div style="width:100%;display:flex;flex-direction:column;padding:0;box-sizing:border-box;">
+                    <span style="display:block;text-align:left;padding-left:0.5vw;">HOVER</span>
+                    <span style="display:block;text-align:center;">AND</span>
+                    <span style="display:block;text-align:right;padding-right:3vw;">CLICK</span>
+                </div>
+            `;
+            clickMsg.style.fontSize = 'clamp(10px, 28vw, 28vh)';
+            clickMsg.style.lineHeight = '0.9';
+            clickMsg.style.justifyContent = 'flex-start';
+            clickMsg.style.alignItems = 'flex-start';
+            clickMsg.style.paddingTop = '2vh';
+            clickMsg.style.letterSpacing = '-0.02em';
+            clickMsg.style.overflow = 'visible';
                 clickMsg.style.opacity = '1';
-            }, 800);
+            }, 600);
 
             document.querySelectorAll('.bio-keyword').forEach(kw => {
                 kw.style.pointerEvents = 'none';
             });
-
-            window.scrollTo({ top: 0, behavior: 'smooth' });
 
             let scrollTimer = null;
             const onScroll = () => {

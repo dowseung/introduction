@@ -155,10 +155,10 @@ body.slide-up {
 
 #scroll-msg {
     position: fixed;
-    top: -20%;
-    left: -20%;
-    width: 140%;
-    height: 140%;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -171,8 +171,9 @@ body.slide-up {
     pointer-events: none;
     z-index: 0;
     font-size: clamp(8vw, 18vw, 20vh);
-    line-height: 0.95;
-    transform: rotate(-45deg);
+    line-height: 1.5;
+    letter-spacing: -0.05em;
+    transform: rotate(45deg);
     box-sizing: border-box;
 }
 
@@ -185,7 +186,7 @@ body.slide-up {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-evenly;
     text-align: center;
     font-weight: 100;
     font-family: "Inter", "Helvetica Neue", "Arial", sans-serif;
@@ -194,11 +195,11 @@ body.slide-up {
     transition: opacity 0.5s ease;
     pointer-events: none;
     z-index: 0;
-    font-size: clamp(8vw, 30vw, 33vh);
-    line-height: 0.95;
-    padding-top: 10px;
+    font-size: clamp(4px, 4vh, 4vw);
+    line-height: 1;
+    padding: 0;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
 }
 
 #bottom-btn {
@@ -229,4 +230,17 @@ body.slide-up {
     letter-spacing: 0.05em;
     width: fit-content;
     text-align: center;
+}
+
+#switch-btn, #top-btn, #bottom-btn, #bottom-btn-2 {
+    display: block;
+    margin: 40px auto 80px;
+    cursor: pointer;
+    width: fit-content;
+    border: none;
+    background: transparent;
+    padding: 0;
+    line-height: 0;
+    position: relative;
+    z-index: 10;
 }
