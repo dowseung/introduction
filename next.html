@@ -5,10 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Next</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            transform: translateY(100%);
+            transition: transform 0.8s cubic-bezier(0.76, 0, 0.24, 1);
+        }
+        body.visible {
+            transform: translateY(0);
+        }
+    </style>
 </head>
 <body>
-    <div id="bio-page">
-        <!-- 내용 -->
-    </div>
+    <script>
+        window.addEventListener('load', () => {
+            requestAnimationFrame(() => {
+                document.body.classList.add('visible');
+            });
+        });
+    </script>
 </body>
 </html>

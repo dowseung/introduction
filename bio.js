@@ -240,6 +240,8 @@ function drawGroupOutlines(clickMsg) {
         clone.dataset.rowIdxAll = kw.dataset.rowIdxAll;
         const mappedRow = spanToRow.get(kw);
         if (mappedRow) clone.dataset.mappedRow = mappedRow;
+        clone.style.visibility = '';
+        clone.style.pointerEvents = '';
         kw.replaceWith(clone);
         allKeywords.push(clone);
     });
@@ -758,7 +760,7 @@ window.addEventListener('load', async () => {
 
             document.querySelectorAll('.bio-keyword').forEach(kw => {
                 kw.style.pointerEvents = 'none';
-                kw.style.visibility = 'hidden'; /* 키워드 숨기기 */
+                kw.style.visibility = 'visible'; /* hidden → visible */
             });
 
             p.style.height = p.offsetHeight + 'px';
@@ -766,41 +768,57 @@ window.addEventListener('load', async () => {
 
             /* 일반 텍스트 보이기 */
             requestAnimationFrame(() => {
+                p.contentEditable = 'false';
+                p.style.outline = 'none';
+                p.style.caretColor = '#000';
+
                 const nodes = Array.from(p.childNodes);
                 nodes.forEach(node => {
                     if (node.nodeType === Node.TEXT_NODE) {
-                        const span = document.createElement('span');
-                        span.textContent = node.textContent;
-                        span.className = 'plain-text';
-                        span.style.visibility = 'visible';
-                        node.replaceWith(span);
-                    } else if (node.nodeType === Node.ELEMENT_NODE && !node.classList.contains('bio-keyword')) {
-                        node.style.visibility = 'visible';
-                        node.classList.add('plain-text');
-                    } else if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('bio-keyword')) {
+                        const wrapper = document.createElement('span');
+                        wrapper.style.cssText = `
+                            position: relative;
+                            display: inline;
+                            white-space: pre-wrap;
+                        `;
+
+                        const hidden = document.createElement('span');
+                        hidden.textContent = node.textContent;
+                        hidden.className = 'plain-text';
+                        hidden.style.cssText = `
+                            visibility: hidden;
+                            white-space: pre-wrap;
+                        `;
+
                         const input = document.createElement('span');
                         input.contentEditable = 'true';
                         input.className = 'fill-blank';
                         input.style.cssText = `
-                            display: inline-block;
-                            min-width: 4em;
-                            border-bottom: 1.5px solid #000;
+                            position: absolute;
+                            top: 0; left: 0;
+                            width: 100%;
+                            height: 100%;
+                            display: inline;
+                            color: #000;
+                            caret-color: #000;
                             outline: none;
+                            border-bottom: 1.5px solid #000;
                             font-family: inherit;
                             font-size: inherit;
                             font-weight: inherit;
-                            color: #000;
+                            white-space: pre-wrap;
+                            overflow: hidden;
                             cursor: text;
-                            padding: 0 2px;
                         `;
-                        input.addEventListener('keydown', e => {
-                            if (input.textContent.length === 0 && e.key === 'Backspace') {
-                                e.preventDefault();
-                            }
-                        });
-                        node.style.visibility = 'hidden';
-                        node.insertAdjacentElement('afterend', input);
+
+                        wrapper.appendChild(hidden);
+                        wrapper.appendChild(input);
+                        node.replaceWith(wrapper);
                     }
+                });
+
+                document.querySelectorAll('.bio-keyword').forEach(kw => {
+                    kw.contentEditable = 'false';
                 });
             });
 
@@ -816,7 +834,7 @@ window.addEventListener('load', async () => {
                 el.style.visibility = 'hidden';
             });
 
-            /* 키워드 다시 보이기 */
+            /* bio-keyword 원래 상태로 복원 */
             document.querySelectorAll('.bio-keyword').forEach(kw => {
                 kw.style.visibility = 'visible';
                 kw.style.pointerEvents = 'none';

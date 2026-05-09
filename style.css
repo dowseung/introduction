@@ -128,14 +128,7 @@ body.slide-up {
 }
 
 #back-btn {
-    position: fixed;
-    top: 24px;
-    left: 40px;
-    z-index: 200;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    justify-content: center;
+    display: none !important;
 }
 
 #top-btn {
