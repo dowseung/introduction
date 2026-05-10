@@ -124,6 +124,7 @@ function drawGroupOutlines(clickMsg) {
     document.getElementById('top-btn')?.remove();
 
     const page = document.getElementById('bio-page');
+    page.style.paddingRight = '25vw';
     const svgStyle = `position:absolute;top:0;left:0;width:${page.scrollWidth}px;height:${page.scrollHeight}px;pointer-events:none;`;
 
     const svgLines = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -741,10 +742,30 @@ window.addEventListener('load', async () => {
 
             p.style.height = p.offsetHeight + 'px';
             p.style.overflow = 'hidden';
-            p.style.textAlign = 'justify';
-            p.style.textAlignLast = 'left';
-            p.style.whiteSpace = 'normal';
-            p.style.wordBreak = 'break-all';
+            p.style.textAlign = 'left';
+
+            document.getElementById('typing-output')?.remove();
+            const typingOutput = document.createElement('div');
+            typingOutput.id = 'typing-output';
+            typingOutput.style.cssText = `
+            position: fixed;
+            top: 30px;
+            right: 55px;
+            width: calc(25vw - 55px);
+            padding: 60px 0 60px 0;
+            box-sizing: border-box;
+            font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
+            font-size: 16px;
+            font-weight: 900;
+            color: #C5A028;
+            line-height: 1.6;
+            word-break: keep-all;
+            white-space: normal;
+            word-wrap: break-word;
+            pointer-events: none;
+            z-index: 2;
+        `;
+            document.body.appendChild(typingOutput);
 
             requestAnimationFrame(() => {
                 p.contentEditable = 'false';
@@ -763,6 +784,12 @@ window.addEventListener('load', async () => {
 
                     const input = document.createElement('span');
                     input.contentEditable = 'true';
+                    input.addEventListener('input', () => {
+                        const allInputs = document.querySelectorAll('.fill-blank');
+                        let combined = '';
+                        allInputs.forEach(el => { combined += el.textContent; });
+                        typingOutput.textContent = combined;
+                    });
                     input.className = 'fill-blank';
                     input.style.cssText = `
                         position: absolute; top: 0; left: 0;
@@ -782,6 +809,8 @@ window.addEventListener('load', async () => {
             });
 
         } else {
+            document.getElementById('typing-output')?.remove();
+            page.style.paddingRight = '25vw';
             document.querySelectorAll('.fill-blank').forEach(el => el.remove());
             p.style.height = '';
             p.style.overflow = '';
@@ -822,6 +851,7 @@ window.addEventListener('load', async () => {
                     window.removeEventListener('scroll', onScroll);
                     page.style.transform = 'none';
                     page.style.transition = '';
+                    page.style.paddingRight = '25vw';
                     requestAnimationFrame(() => {
                         drawGroupOutlines(clickMsg);
                     });
@@ -831,6 +861,7 @@ window.addEventListener('load', async () => {
             if (window.scrollY === 0) {
                 page.style.transform = 'none';
                 page.style.transition = '';
+                page.style.paddingRight = '25vw';
                 requestAnimationFrame(() => {
                     drawGroupOutlines(clickMsg);
                 });

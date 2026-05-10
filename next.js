@@ -62,7 +62,7 @@ window.addEventListener('load', async () => {
             display: flex;
             align-items: flex-start;
             justify-content: flex-start;
-            font-family: "Poiret One", sans-serif;
+            font-family: "AvantGarde", sans-serif;
             font-weight: 100;
             color: #00FF00;
             pointer-events: none;

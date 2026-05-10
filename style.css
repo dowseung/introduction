@@ -10,6 +10,12 @@
     unicode-range: U+0020-007E;
 }
 
+@font-face {
+    font-family: 'AvantGarde';
+    src: url('./fonts/ITCAvantGarde.otf') format('opentype');
+    font-weight: 100 900;
+}
+
 body, html {
     margin: 0;
     padding: 0;
@@ -158,8 +164,8 @@ body.slide-up {
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;
-    font-weight: 100;
-    font-family: "Poiret One", sans-serif;
+    font-weight: normal;
+    font-family: "AvantGarde", sans-serif;
     color: #00FF00;
     opacity: 0;
     transition: opacity 0.5s ease;
@@ -185,8 +191,8 @@ body.slide-up {
     align-items: center;
     justify-content: space-evenly;
     text-align: center;
-    font-weight: 100;
-    font-family: "Poiret One", sans-serif;
+    font-weight: normal;
+    font-family: "AvantGarde", sans-serif;
     color: #00FF00;
     opacity: 0;
     transition: opacity 0.5s ease;
