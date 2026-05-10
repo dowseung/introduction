@@ -6,22 +6,72 @@
     <title>Next</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body {
-            transform: translateY(100%);
-            transition: transform 0.8s cubic-bezier(0.76, 0, 0.24, 1);
-        }
+       body {
+    transform: translateY(100%);
+    transition: transform 0.8s cubic-bezier(0.76, 0, 0.24, 1);
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    background-color: #ebebeb;
+}
         body.visible {
             transform: translateY(0);
+        }
+
+        #next-page {
+            position: relative;
+            width: 100vw;
+            height: 300vh;
+        }
+
+        .word-node {
+    position: absolute;
+    font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
+    font-size: clamp(10px, 1.2vw, 18px);
+    font-weight: 600;
+    color: #000;
+    cursor: default;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.word-node.faded {
+    opacity: 0.3;
+}
+
+        .word-node.faded {
+            opacity: 0.3;
+        }
+
+        #svg-lines {
+            z-index: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #svg-lines line {
+            stroke: #000;
+            stroke-width: 1;
+            stroke-dasharray: var(--len, 1000);
+            stroke-dashoffset: var(--len, 1000);
+            transition: stroke-dashoffset 0.5s ease, opacity 0.25s ease;
+            opacity: 0;
+        }
+
+        #svg-lines line.visible {
+            stroke-dashoffset: 0;
+            opacity: 1;
         }
     </style>
 </head>
 <body>
-    <script>
-        window.addEventListener('load', () => {
-            requestAnimationFrame(() => {
-                document.body.classList.add('visible');
-            });
-        });
-    </script>
+    <div id="next-page">
+        <svg id="svg-lines"></svg>
+    </div>
+    <script src="next.js"></script>
 </body>
 </html>

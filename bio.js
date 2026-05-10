@@ -583,9 +583,23 @@ function drawGroupOutlines(clickMsg) {
                         bottomBtn2.addEventListener('click', () => {
                             bottomBtn2.remove();
                             window.scrollTo({ top: 0, behavior: 'smooth' });
-                            setTimeout(() => {
-                                window.location.href = 'next.html';
-                            }, 300);
+                        
+                            const onScroll = () => {
+                                if (window.scrollY <= 5) {
+                                    window.removeEventListener('scroll', onScroll);
+                                    document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
+                                    document.body.style.transform = 'translateY(-100%)';
+                                    setTimeout(() => {
+                                        window.location.href = 'next.html';
+                                    }, 800);
+                                }
+                            };
+                        
+                            window.addEventListener('scroll', onScroll);
+                        
+                            if (window.scrollY <= 5) {
+                                onScroll();
+                            }
                         });
                     });
 
