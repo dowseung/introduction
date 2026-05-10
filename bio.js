@@ -96,7 +96,7 @@ function openMenu(span) {
         const item = document.createElement('span');
         item.textContent = val;
         item.style.cssText = `
-            color: #FF0000;
+            color: #C5A028;
             cursor: pointer;
             transition: opacity 0.2s ease;
             display: inline-block;
@@ -644,6 +644,8 @@ window.addEventListener('load', async () => {
         });
         p.appendChild(span);
     });
+    p.style.position = 'relative';
+    p.style.zIndex = '1';
     page.appendChild(p);
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -662,12 +664,43 @@ window.addEventListener('load', async () => {
     const scrollMsg = document.createElement('div');
     scrollMsg.id = 'scroll-msg';
     scrollMsg.innerHTML = `
-    <div style="width:100%;display:flex;flex-direction:column;padding:0;box-sizing:border-box;">
-        <span style="display:block;text-align:right;padding-right:3vw;">READ</span>
-        <span style="display:block;text-align:right;padding-right:3vw;">SCROLL</span>
-        <span style="display:block;text-align:right;padding-right:3vw;">CHANGE</span>
+    <div style="position:absolute;top:40px;right:3vw;display:flex;flex-direction:column;text-align:right;">
+        <span style="display:block;text-align:right;">READ</span>
+        <span style="display:block;text-align:right;">SCROLL</span>
+        <span style="display:block;text-align:right;">CHANGE</span>
     </div>
-`;
+    `;
+    const circleCol = document.createElement('div');
+    circleCol.id = 'circle-col';
+    circleCol.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 55px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        pointer-events: none;
+        z-index: 0;
+    `;
+
+    const circleSize = window.innerWidth / 5;
+    const bioTextEl = document.getElementById('bio-text');
+    const bioHeight = bioTextEl ? bioTextEl.offsetHeight : window.innerHeight * 3;
+    const count = Math.ceil(bioHeight / circleSize) + 2;
+
+    for (let i = 0; i < count; i++) {
+        const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        s.setAttribute('viewBox', '0 0 100 100');
+        s.setAttribute('width', circleSize);
+        s.setAttribute('height', circleSize);
+        s.style.display = 'block';
+        s.style.flexShrink = '0';
+        s.innerHTML = `<circle cx="50" cy="50" r="45" fill="none" stroke="#FF00FF" stroke-width="1.5"/>`;
+        circleCol.appendChild(s);
+    }
+
+    page.appendChild(circleCol);
+
     document.body.appendChild(scrollMsg);
     setTimeout(() => { scrollMsg.style.opacity = '1'; }, 100);
 
@@ -684,7 +717,8 @@ window.addEventListener('load', async () => {
             closeMenu();
             clickMsg.style.opacity = '0';
             scrollMsg.style.opacity = '0';
-            window.scrollTo({ top: 0, behavior: 'instant' });
+            document.getElementById('circle-col')?.remove();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             setTimeout(() => {
                 clickMsg.innerHTML = 'FILL<br>IN THE<br>BLANK';
                 clickMsg.style.fontSize = 'clamp(8vw, 30vw, 33vh)';
@@ -701,6 +735,10 @@ window.addEventListener('load', async () => {
 
             p.style.height = p.offsetHeight + 'px';
             p.style.overflow = 'hidden';
+            p.style.textAlign = 'justify';
+            p.style.textAlignLast = 'left';
+            p.style.whiteSpace = 'normal';
+            p.style.wordBreak = 'break-all';
 
             requestAnimationFrame(() => {
                 p.contentEditable = 'false';
