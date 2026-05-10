@@ -466,7 +466,7 @@ function drawGroupOutlines(clickMsg) {
                             item.style.cssText = `
                                 font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
                                 font-size: clamp(6px, 1vw, 14px);
-                                font-weight: 600;
+                                font-weight: 900;
                                 line-height: 1.5;
                                 word-break: keep-all;
                                 overflow-wrap: normal;

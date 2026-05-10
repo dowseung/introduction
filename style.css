@@ -45,7 +45,7 @@ body.slide-up {
     white-space: pre-wrap;
     word-break: keep-all;
     width: 100%;
-    font-weight: 600;
+    font-weight: 00;
     line-height: 1.35;
     outline: none;
     caret-color: #000;
@@ -93,7 +93,7 @@ body.slide-up {
     padding: 0;
     white-space: pre-wrap;
     word-break: keep-all;
-    font-weight: 600;
+    font-weight: 900;
     line-height: 1.7;
     font-size: 30px;
 }
@@ -119,7 +119,7 @@ body.slide-up {
     border: 1.5px solid #000;
     font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 900;
     background: transparent;
     letter-spacing: 0.05em;
     width: fit-content;
@@ -142,7 +142,7 @@ body.slide-up {
     border: 1.5px solid #000;
     font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 900;
     background: transparent;
     letter-spacing: 0.05em;
     width: fit-content;
@@ -207,7 +207,7 @@ body.slide-up {
     border: 1.5px solid #000;
     font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 900;
     background: transparent;
     letter-spacing: 0.05em;
     width: fit-content;

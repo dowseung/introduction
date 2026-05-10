@@ -132,7 +132,7 @@ window.addEventListener('load', async () => {
                             position: relative;
                             font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
                             font-size: ${fontSize}px;
-                            font-weight: 600;
+                            font-weight: 900;
                             line-height: 1.6;
                             overflow-wrap: break-word;
                             word-break: keep-all;
