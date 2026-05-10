@@ -91,13 +91,11 @@ body.slide-up {
 #bio-text {
     margin: 0;
     padding: 0;
-    white-space: normal;
+    white-space: pre-wrap;
     word-break: keep-all;
     font-weight: 900;
     line-height: 1.7;
     font-size: 30px;
-    text-align: justify;
-    text-align-last: left;
 }
 
 .bio-keyword {
@@ -161,13 +159,13 @@ body.slide-up {
     align-items: flex-start;
     justify-content: flex-start;
     font-weight: 100;
-    font-family: "Inter", "Helvetica Neue", "Arial", sans-serif;
+    font-family: "Poiret One", sans-serif;
     color: #00FF00;
     opacity: 0;
     transition: opacity 0.5s ease;
     pointer-events: none;
     z-index: 0;
-    font-size: clamp(10px, 28vw, 28vh);
+    font-size: clamp(10px, 20vw, 20vh);
     line-height: 0.85;
     letter-spacing: -0.02em;
     padding-top: 2vh;
@@ -188,7 +186,7 @@ body.slide-up {
     justify-content: space-evenly;
     text-align: center;
     font-weight: 100;
-    font-family: "Inter", "Helvetica Neue", "Arial", sans-serif;
+    font-family: "Poiret One", sans-serif;
     color: #00FF00;
     opacity: 0;
     transition: opacity 0.5s ease;

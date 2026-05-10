@@ -664,7 +664,7 @@ window.addEventListener('load', async () => {
     const scrollMsg = document.createElement('div');
     scrollMsg.id = 'scroll-msg';
     scrollMsg.innerHTML = `
-    <div style="position:absolute;top:40px;right:3vw;display:flex;flex-direction:column;text-align:right;">
+    <div style="position:fixed;top:40px;right:3vw;display:flex;flex-direction:column;text-align:right;white-space:nowrap;">
         <span style="display:block;text-align:right;">READ</span>
         <span style="display:block;text-align:right;">SCROLL</span>
         <span style="display:block;text-align:right;">CHANGE</span>
@@ -673,30 +673,36 @@ window.addEventListener('load', async () => {
     const circleCol = document.createElement('div');
     circleCol.id = 'circle-col';
     circleCol.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 55px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        pointer-events: none;
-        z-index: 0;
-    `;
+    position: absolute;
+    top: 0;
+    left: 55px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 0;
+`;
 
-    const circleSize = window.innerWidth / 5;
+    const circleSize = Math.min(window.innerWidth / 5, window.innerHeight / 5);
     const bioTextEl = document.getElementById('bio-text');
     const bioHeight = bioTextEl ? bioTextEl.offsetHeight : window.innerHeight * 3;
     const count = Math.ceil(bioHeight / circleSize) + 2;
 
-    for (let i = 0; i < count; i++) {
+    let totalHeight = 0;
+    let i = 0;
+    while (totalHeight < bioHeight) {
+        const size = circleSize * (1 + i * 0.3);
         const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         s.setAttribute('viewBox', '0 0 100 100');
-        s.setAttribute('width', circleSize);
-        s.setAttribute('height', circleSize);
+        s.setAttribute('width', size);
+        s.setAttribute('height', size);
         s.style.display = 'block';
         s.style.flexShrink = '0';
-        s.innerHTML = `<circle cx="50" cy="50" r="45" fill="none" stroke="#FF00FF" stroke-width="1.5"/>`;
+        const strokeWidth = (1.5 * circleSize / size).toFixed(2);
+        s.innerHTML = `<circle cx="50" cy="50" r="45" fill="none" stroke="#FF00FF" stroke-width="${strokeWidth}"/>`;
         circleCol.appendChild(s);
+        totalHeight += size;
+        i++;
     }
 
     page.appendChild(circleCol);
@@ -843,6 +849,15 @@ window.addEventListener('load', async () => {
                 drawGroupOutlines(clickMsg);
             });
         });
+        // 원 크기 업데이트
+        const circleColEl = document.getElementById('circle-col');
+        if (circleColEl) {
+            const newSize = Math.min(window.innerWidth / 5, window.innerHeight / 5);
+            circleColEl.querySelectorAll('svg').forEach(s => {
+                s.setAttribute('width', newSize);
+                s.setAttribute('height', newSize);
+            });
+        }
     });
 
 

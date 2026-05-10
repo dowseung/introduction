@@ -62,7 +62,7 @@ window.addEventListener('load', async () => {
             display: flex;
             align-items: flex-start;
             justify-content: flex-start;
-            font-family: "Inter", "Helvetica Neue", "Arial", sans-serif;
+            font-family: "Poiret One", sans-serif;
             font-weight: 100;
             color: #00FF00;
             pointer-events: none;
@@ -72,7 +72,7 @@ window.addEventListener('load', async () => {
         `;
         whoseMsg.innerHTML = `
         <div style="text-align:left; padding: 0 0 0 55px;">
-            <span style="display:block;font-size:min(23vw, 60vh);line-height:1;letter-spacing:0.05em;white-space:nowrap;color:#00FF00;">WHOSE?</span>
+        <span style="display:block;font-size:min(20vw, 55vh);line-height:1;letter-spacing:0.05em;white-space:nowrap;color:#00FF00;">WHOSE?</span>
         </div>`;
         document.body.appendChild(whoseMsg);
 
