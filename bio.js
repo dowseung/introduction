@@ -4,7 +4,7 @@ let sheetRows = [];
 let activeMenu = null;
 let activeSpan = null;
 
-const arrowSVG = `<svg viewBox="0 0 110 60" width="33vw" height="16.5vw" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;">
+const arrowSVG = `<svg viewBox="0 0 110 60" width="15vw" height="7.5vw" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;">
     <line x1="0" y1="30" x2="95" y2="30" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
     <polyline points="75,10 95,30 75,50" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
@@ -23,14 +23,6 @@ function parseCSV(text) {
     }
     if (row.length) { row.push(cell.trim()); rows.push(row); }
     return rows;
-}
-
-function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
 }
 
 function getColValues(colIdx) {
@@ -163,12 +155,17 @@ function drawGroupOutlines(clickMsg) {
     const pageBCR = page.getBoundingClientRect();
     const scrollY = window.scrollY;
     const scrollX = window.scrollX;
+    
+    // SVG 크기를 현재 페이지 크기에 맞게 업데이트
+    svgLines.style.width = page.scrollWidth + 'px';
+    svgLines.style.height = page.scrollHeight + 'px';
+    svgBoxes.style.width = page.scrollWidth + 'px';
+    svgBoxes.style.height = page.scrollHeight + 'px';
     const drawnRectKeys = new Set();
     const spanToRow = new Map();
 
     Object.entries(groups).forEach(([rowIdx, spans]) => {
         if (spans.length === 0) return;
-
         const rects = [];
         spans.forEach(s => {
             Array.from(s.getClientRects()).forEach(rect => {
@@ -196,13 +193,10 @@ function drawGroupOutlines(clickMsg) {
             boxPathD += `L ${x+w} ${y+h-r} Q ${x+w} ${y+h} ${x+w-r} ${y+h} `;
             boxPathD += `L ${x+r} ${y+h} Q ${x} ${y+h} ${x} ${y+h-r} `;
             boxPathD += `L ${x} ${y+r} Q ${x} ${y} ${x+r} ${y} Z `;
-
             if (i < rects.length - 1) {
                 const next = rects[i + 1];
-                const x1 = x + w / 2;
-                const y1 = y + h;
-                const x2 = next.x + next.w / 2;
-                const y2 = next.y;
+                const x1 = x + w / 2, y1 = y + h;
+                const x2 = next.x + next.w / 2, y2 = next.y;
                 linePathD += `M ${x1} ${y1} C ${x1} ${(y1+y2)/2} ${x2} ${(y1+y2)/2} ${x2} ${y2} `;
             }
         });
@@ -251,12 +245,8 @@ function drawGroupOutlines(clickMsg) {
     }
 
     function fadeOthers(activeRow) {
-        allBoxPaths.forEach(p => {
-            p.style.opacity = p.dataset.row === activeRow ? '1' : '0.15';
-        });
-        allLinePaths.forEach(p => {
-            p.style.opacity = p.dataset.row === activeRow ? '1' : '0.15';
-        });
+        allBoxPaths.forEach(p => { p.style.opacity = p.dataset.row === activeRow ? '1' : '0.15'; });
+        allLinePaths.forEach(p => { p.style.opacity = p.dataset.row === activeRow ? '1' : '0.15'; });
         allKeywords.forEach(kw => {
             const row = getMappedRow(kw);
             kw.style.opacity = row === activeRow ? '1' : '0.15';
@@ -279,15 +269,10 @@ function drawGroupOutlines(clickMsg) {
             if (activeRow) return;
             const activeR = getMappedRow(kw);
             if (!activeR) return;
-            allBoxPaths.forEach(p => {
-                p.style.opacity = p.dataset.row === activeR ? '1' : '0.15';
-            });
-            allLinePaths.forEach(p => {
-                p.style.opacity = p.dataset.row === activeR ? '1' : '0.15';
-            });
+            allBoxPaths.forEach(p => { p.style.opacity = p.dataset.row === activeR ? '1' : '0.15'; });
+            allLinePaths.forEach(p => { p.style.opacity = p.dataset.row === activeR ? '1' : '0.15'; });
             allKeywords.forEach(k => {
-                const row = getMappedRow(k);
-                k.style.opacity = row === activeR ? '1' : '0.15';
+                k.style.opacity = getMappedRow(k) === activeR ? '1' : '0.15';
             });
         });
 
@@ -299,20 +284,15 @@ function drawGroupOutlines(clickMsg) {
         kw.addEventListener('click', e => {
             e.stopPropagation();
             const clickedRow = getMappedRow(kw);
-            if (activeRow === clickedRow) {
-                activeRow = null;
-                resetAll();
-            } else {
-                activeRow = clickedRow;
-                fadeOthers(activeRow);
-            }
+            if (activeRow === clickedRow) { activeRow = null; resetAll(); }
+            else { activeRow = clickedRow; fadeOthers(activeRow); }
         });
     });
 
     const topBtn = document.createElement('div');
     topBtn.id = 'top-btn';
     topBtn.innerHTML = arrowSVG;
-    page.appendChild(topBtn);
+    document.body.appendChild(topBtn);
 
     topBtn.addEventListener('click', () => {
         topBtn.style.display = 'none';
@@ -320,9 +300,7 @@ function drawGroupOutlines(clickMsg) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => {
             enterMergeMode();
-            setTimeout(() => {
-                document.getElementById('bottom-btn')?.click();
-            }, 100);
+            setTimeout(() => { document.getElementById('bottom-btn')?.click(); }, 100);
         }, 300);
     });
 
@@ -345,16 +323,10 @@ function drawGroupOutlines(clickMsg) {
             kw.addEventListener('mouseenter', () => {
                 const activeR = kw.dataset.mappedRow || kw.dataset.rowIdx;
                 mergeKeywords.forEach(k => {
-                    if ((k.dataset.mappedRow || k.dataset.rowIdx) === activeR) {
-                        k.style.opacity = '0.3';
-                    }
+                    if ((k.dataset.mappedRow || k.dataset.rowIdx) === activeR) k.style.opacity = '0.3';
                 });
-                allBoxPaths.forEach(p => {
-                    if (p.dataset.row === activeR) p.style.opacity = '0.3';
-                });
-                allLinePaths.forEach(p => {
-                    if (p.dataset.row === activeR) p.style.opacity = '0.3';
-                });
+                allBoxPaths.forEach(p => { if (p.dataset.row === activeR) p.style.opacity = '0.3'; });
+                allLinePaths.forEach(p => { if (p.dataset.row === activeR) p.style.opacity = '0.3'; });
             });
 
             kw.addEventListener('mouseleave', () => {
@@ -367,59 +339,36 @@ function drawGroupOutlines(clickMsg) {
                 e.stopPropagation();
                 const clickedRow = kw.dataset.mappedRow || kw.dataset.rowIdx;
                 if (!clickedRow) return;
-
                 const sameRowKws = mergeKeywords.filter(k =>
                     (k.dataset.mappedRow || k.dataset.rowIdx) === clickedRow
                 );
-
-                sameRowKws.forEach(k => {
-                    k.style.transition = 'opacity 0.4s ease';
-                    k.style.opacity = '0';
-                });
+                sameRowKws.forEach(k => { k.style.transition = 'opacity 0.4s ease'; k.style.opacity = '0'; });
                 document.querySelectorAll(`#connect-svg-boxes path[data-row="${clickedRow}"]`).forEach(p => {
-                    p.style.transition = 'opacity 0.4s ease';
-                    p.style.opacity = '0';
+                    p.style.transition = 'opacity 0.4s ease'; p.style.opacity = '0';
                 });
                 document.querySelectorAll(`#connect-svg-lines path[data-row="${clickedRow}"]`).forEach(p => {
-                    p.style.transition = 'opacity 0.4s ease';
-                    p.style.opacity = '0';
+                    p.style.transition = 'opacity 0.4s ease'; p.style.opacity = '0';
                 });
-
                 setTimeout(() => {
-                    sameRowKws.forEach(k => {
-                        k.style.visibility = 'hidden';
-                        k.style.pointerEvents = 'none';
-                    });
-                    document.querySelectorAll(`#connect-svg-boxes path[data-row="${clickedRow}"]`).forEach(p => {
-                        p.style.display = 'none';
-                    });
-                    document.querySelectorAll(`#connect-svg-lines path[data-row="${clickedRow}"]`).forEach(p => {
-                        p.style.display = 'none';
-                    });
+                    sameRowKws.forEach(k => { k.style.visibility = 'hidden'; k.style.pointerEvents = 'none'; });
+                    document.querySelectorAll(`#connect-svg-boxes path[data-row="${clickedRow}"]`).forEach(p => { p.style.display = 'none'; });
+                    document.querySelectorAll(`#connect-svg-lines path[data-row="${clickedRow}"]`).forEach(p => { p.style.display = 'none'; });
                 }, 400);
             });
         });
 
-        /* 하단 버튼 1 */
         const bottomBtn = document.createElement('div');
         bottomBtn.id = 'bottom-btn';
         bottomBtn.innerHTML = arrowSVG;
-        page.appendChild(bottomBtn);
+        document.body.appendChild(bottomBtn);
 
         bottomBtn.addEventListener('click', () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
-
             setTimeout(() => {
                 const svgLinesEl = document.getElementById('connect-svg-lines');
                 const svgBoxesEl = document.getElementById('connect-svg-boxes');
-                if (svgLinesEl) {
-                    svgLinesEl.style.transition = 'opacity 0.4s ease';
-                    svgLinesEl.style.opacity = '0';
-                }
-                if (svgBoxesEl) {
-                    svgBoxesEl.style.transition = 'opacity 0.4s ease';
-                    svgBoxesEl.style.opacity = '0';
-                }
+                if (svgLinesEl) { svgLinesEl.style.transition = 'opacity 0.4s ease'; svgLinesEl.style.opacity = '0'; }
+                if (svgBoxesEl) { svgBoxesEl.style.transition = 'opacity 0.4s ease'; svgBoxesEl.style.opacity = '0'; }
 
                 document.querySelectorAll('.bio-keyword').forEach(kw => {
                     kw.style.transition = 'opacity 0.4s ease';
@@ -429,15 +378,16 @@ function drawGroupOutlines(clickMsg) {
                 if (clickMsg) {
                     const lines = ['DESIGNER','NAME','JOB','SCHOOL','MAJOR','ORGANIZATION','BOOK','EXHIBITION','TIME','PLACE','SPACE'];
                     clickMsg.innerHTML = lines.map(l =>
-                        `<span class="label-line" style="display:block;font-weight:100;">${l}</span>`
+                        `<span class="label-line" style="display:block;font-weight:100;text-align:right;">${l}</span>`
                     ).join('');
                     clickMsg.style.fontSize = 'clamp(4px, 8.5vh, 8.5vw)';
                     clickMsg.style.lineHeight = '1.05';
                     clickMsg.style.justifyContent = 'flex-start';
-                    clickMsg.style.alignItems = 'center';  /* ← center로 복원 */
+                    clickMsg.style.alignItems = 'flex-end';
                     clickMsg.style.paddingTop = '0';
-                    clickMsg.style.letterSpacing = '0';     /* ← 초기화 */
-                    clickMsg.style.overflow = 'hidden';     /* ← 초기화 */
+                    clickMsg.style.paddingRight = '55px';
+                    clickMsg.style.letterSpacing = '0';
+                    clickMsg.style.overflow = 'hidden';
                     clickMsg.style.opacity = '1';
                 }
 
@@ -445,9 +395,7 @@ function drawGroupOutlines(clickMsg) {
                     if (svgLinesEl) svgLinesEl.style.display = 'none';
                     if (svgBoxesEl) svgBoxesEl.style.display = 'none';
 
-                    document.querySelectorAll('.bio-keyword').forEach(kw => {
-                        kw.style.visibility = 'hidden';
-                    });
+                    document.querySelectorAll('.bio-keyword').forEach(kw => { kw.style.visibility = 'hidden'; });
 
                     const bioTextEl = document.getElementById('bio-text');
                     if (bioTextEl) bioTextEl.style.display = 'none';
@@ -455,13 +403,13 @@ function drawGroupOutlines(clickMsg) {
                     const listContainer = document.createElement('div');
                     listContainer.id = 'col-list';
                     listContainer.style.cssText = `
-                        position: relative;
-                        width: 100%;
-                        display: flex;
-                        flex-direction: row;
-                        align-items: flex-start;
-                        flex-wrap: nowrap;
-                        padding: 30px 2vw 40px 2vw;
+                    position: relative;
+                    width: 100%;
+                    display: flex;
+                    flex-direction: row;
+                    align-items: flex-start;
+                    flex-wrap: nowrap;
+                    padding: 60px 2vw 40px 2vw;
                         box-sizing: border-box;
                         gap: 1vw;
                         opacity: 0;
@@ -473,28 +421,27 @@ function drawGroupOutlines(clickMsg) {
                     for (let colIdx = 1; colIdx <= 11; colIdx++) {
                         const col = document.createElement('div');
                         col.style.cssText = `
-                            flex: 1 1 0;
-                            min-width: 0;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: flex-start;
-                            gap: 0.3em;
-                        `;
+                        flex: 1 1 0;
+                        min-width: 0;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 0.3em;
+                        ${colIdx > 1 ? 'border-left: 1px solid #000;' : ''}
+                        padding-left: ${colIdx > 1 ? '0.5vw' : '0'};
+                    `;
 
-                        /* 형광초록 글씨 줄과 연동 */
                         const labels = ['DESIGNER','NAME','JOB','SCHOOL','MAJOR','ORGANIZATION','BOOK','EXHIBITION','TIME','PLACE','SPACE'];
                         const labelIndex = colIdx - 1;
 
                         col.addEventListener('mouseenter', () => {
-                            const spans = clickMsg.querySelectorAll('.label-line');
-                            spans.forEach((s, i) => {
-                                s.style.fontWeight = i === labelIndex ? '500' : '100';
+                            clickMsg.querySelectorAll('.label-line').forEach((s, i) => {
+                                s.style.color = i === labelIndex ? '#C5A028' : '#00FF00';
                             });
                         });
-
                         col.addEventListener('mouseleave', () => {
                             clickMsg.querySelectorAll('.label-line').forEach(s => {
-                                s.style.fontWeight = '100';
+                                s.style.color = '#00FF00';
                             });
                         });
 
@@ -507,21 +454,15 @@ function drawGroupOutlines(clickMsg) {
                             });
                         });
 
-                        vals.forEach((val, valIdx) => {
+                        vals.forEach(val => {
                             const item = document.createElement('div');
                             item.textContent = val;
-
-                            /* rowIdx 바로 저장 */
                             sheetRows.slice(1).forEach((row, rowIdx) => {
                                 const cell = (row[colIdx] || '').trim();
                                 cell.split(/\r?\n/).forEach(v => {
-                                    if (v.trim() === val) {
-                                        item.dataset.rowIdx = rowIdx;
-                                        item.dataset.colIdx = colIdx;
-                                    }
+                                    if (v.trim() === val) { item.dataset.rowIdx = rowIdx; item.dataset.colIdx = colIdx; }
                                 });
                             });
-
                             item.style.cssText = `
                                 font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
                                 font-size: clamp(6px, 1vw, 14px);
@@ -535,35 +476,29 @@ function drawGroupOutlines(clickMsg) {
                                 width: 100%;
                                 overflow: hidden;
                                 cursor: pointer;
-                                transition: outline 0.1s ease;
                             `;
-
                             item.addEventListener('mouseenter', () => {
                                 const hoverRow = item.dataset.rowIdx;
                                 if (!hoverRow) return;
                                 document.querySelectorAll('#col-list div[data-row-idx]').forEach(k => {
                                     if (k.dataset.rowIdx === hoverRow) {
-                                        const h = k.getBoundingClientRect().height;
-                                        const radius = Math.min(h / 2, 8);
                                         k.style.boxShadow = `0 0 0 1.5px #000`;
-                                        k.style.borderRadius = `${radius}px`;
+                                        k.style.borderRadius = `${Math.min(k.getBoundingClientRect().height / 2, 8)}px`;
                                     }
                                 });
                             });
-
                             item.addEventListener('mouseleave', () => {
                                 document.querySelectorAll('#col-list div[data-row-idx]').forEach(k => {
-                                    k.style.boxShadow = 'none';
-                                    k.style.borderRadius = '0';
+                                    k.style.boxShadow = 'none'; k.style.borderRadius = '0';
                                 });
                             });
-
                             col.appendChild(item);
                         });
 
                         listContainer.appendChild(col);
                     }
 
+                    const page = document.getElementById('bio-page');
                     page.style.paddingTop = '0';
                     page.style.height = 'auto';
                     page.style.minHeight = '0';
@@ -572,39 +507,30 @@ function drawGroupOutlines(clickMsg) {
 
                     requestAnimationFrame(() => {
                         listContainer.style.opacity = '1';
-
                         bottomBtn.remove();
 
                         const bottomBtn2 = document.createElement('div');
                         bottomBtn2.id = 'bottom-btn-2';
-                        bottomBtn2.innerHTML = arrowSVG;   
-                        page.appendChild(bottomBtn2);
+                        bottomBtn2.innerHTML = arrowSVG;
+                        document.body.appendChild(bottomBtn2);
 
                         bottomBtn2.addEventListener('click', () => {
                             bottomBtn2.remove();
                             window.scrollTo({ top: 0, behavior: 'smooth' });
-                        
                             const onScroll = () => {
                                 if (window.scrollY <= 5) {
                                     window.removeEventListener('scroll', onScroll);
                                     document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
                                     document.body.style.transform = 'translateY(-100%)';
-                                    setTimeout(() => {
-                                        window.location.href = 'next.html';
-                                    }, 800);
+                                    setTimeout(() => { window.location.href = 'next.html'; }, 800);
                                 }
                             };
-                        
                             window.addEventListener('scroll', onScroll);
-                        
-                            if (window.scrollY <= 5) {
-                                onScroll();
-                            }
+                            if (window.scrollY <= 5) onScroll();
                         });
                     });
-
                 }, 400);
-            }, 700);
+            }, 300);
         });
     }
 
@@ -707,15 +633,8 @@ window.addEventListener('load', async () => {
         span.dataset.rowIdx = part.rowIdx;
         span.dataset.rowIdxAll = part.rowIdxAll;
         span.className = 'bio-keyword';
-
-        span.addEventListener('mouseenter', () => {
-            if (activeSpan === span) return;
-            span.style.opacity = '0.4';
-        });
-        span.addEventListener('mouseleave', () => {
-            if (activeSpan === span) return;
-            span.style.opacity = '1';
-        });
+        span.addEventListener('mouseenter', () => { if (activeSpan === span) return; span.style.opacity = '0.4'; });
+        span.addEventListener('mouseleave', () => { if (activeSpan === span) return; span.style.opacity = '1'; });
         span.addEventListener('click', e => {
             e.stopPropagation();
             if (activeSpan === span) { closeMenu(); return; }
@@ -725,9 +644,16 @@ window.addEventListener('load', async () => {
         });
         p.appendChild(span);
     });
-
     page.appendChild(p);
-
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            page.style.transform = 'translateY(0)';
+        });
+    });
+    setTimeout(() => {
+        page.style.transform = 'none';
+        page.style.transition = '';
+    }, 1300);
     const clickMsg = document.createElement('div');
     clickMsg.id = 'click-msg';
     clickMsg.innerHTML = 'CLICK<br>THE<br>TEXT';
@@ -736,33 +662,29 @@ window.addEventListener('load', async () => {
     const scrollMsg = document.createElement('div');
     scrollMsg.id = 'scroll-msg';
     scrollMsg.innerHTML = `
-        <span style="display:inline-block;transform:rotate(-45deg)">R</span><span style="display:inline-block;transform:rotate(-45deg)">E</span><span style="display:inline-block;transform:rotate(-45deg)">A</span><span style="display:inline-block;transform:rotate(-45deg)">D</span>
-        <br>
-        <span style="display:inline-block;transform:rotate(-45deg)">&amp;</span>
-        <br>
-        <span style="display:inline-block;transform:rotate(-45deg)">S</span><span style="display:inline-block;transform:rotate(-45deg)">C</span><span style="display:inline-block;transform:rotate(-45deg)">R</span><span style="display:inline-block;transform:rotate(-45deg)">O</span><span style="display:inline-block;transform:rotate(-45deg)">L</span><span style="display:inline-block;transform:rotate(-45deg)">L</span>
-    `;
+    <div style="width:100%;display:flex;flex-direction:column;padding:0;box-sizing:border-box;">
+        <span style="display:block;text-align:right;padding-right:3vw;">READ</span>
+        <span style="display:block;text-align:right;padding-right:3vw;">SCROLL</span>
+        <span style="display:block;text-align:right;padding-right:3vw;">CHANGE</span>
+    </div>
+`;
     document.body.appendChild(scrollMsg);
-
-
     setTimeout(() => { scrollMsg.style.opacity = '1'; }, 100);
 
     const switchBtn = document.createElement('div');
     switchBtn.id = 'switch-btn';
-    switchBtn.innerHTML = arrowSVG; 
-    p.insertAdjacentElement('afterend', switchBtn);
+    switchBtn.innerHTML = arrowSVG;
+    document.body.appendChild(switchBtn);
 
     let hidden = false;
 
     switchBtn.addEventListener('click', () => {
         if (!hidden) {
             hidden = true;
-            switchBtn.innerHTML = arrowSVG;  
             closeMenu();
-
             clickMsg.style.opacity = '0';
             scrollMsg.style.opacity = '0';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: 'instant' });
             setTimeout(() => {
                 clickMsg.innerHTML = 'FILL<br>IN THE<br>BLANK';
                 clickMsg.style.fontSize = 'clamp(8vw, 30vw, 33vh)';
@@ -774,81 +696,52 @@ window.addEventListener('load', async () => {
 
             document.querySelectorAll('.bio-keyword').forEach(kw => {
                 kw.style.pointerEvents = 'none';
-                kw.style.visibility = 'visible'; /* hidden → visible */
+                kw.style.visibility = 'visible';
             });
 
             p.style.height = p.offsetHeight + 'px';
             p.style.overflow = 'hidden';
 
-            /* 일반 텍스트 보이기 */
             requestAnimationFrame(() => {
                 p.contentEditable = 'false';
                 p.style.outline = 'none';
                 p.style.caretColor = '#000';
 
-                const nodes = Array.from(p.childNodes);
-                nodes.forEach(node => {
-                    if (node.nodeType === Node.TEXT_NODE) {
-                        const wrapper = document.createElement('span');
-                        wrapper.style.cssText = `
-                            position: relative;
-                            display: inline;
-                            white-space: pre-wrap;
-                        `;
+                Array.from(p.childNodes).forEach(node => {
+                    if (node.nodeType !== Node.TEXT_NODE) return;
+                    const wrapper = document.createElement('span');
+                    wrapper.style.cssText = `position: relative; display: inline; white-space: pre-wrap;`;
 
-                        const hidden = document.createElement('span');
-                        hidden.textContent = node.textContent;
-                        hidden.className = 'plain-text';
-                        hidden.style.cssText = `
-                            visibility: hidden;
-                            white-space: pre-wrap;
-                        `;
+                    const hiddenSpan = document.createElement('span');
+                    hiddenSpan.textContent = node.textContent;
+                    hiddenSpan.className = 'plain-text';
+                    hiddenSpan.style.cssText = `visibility: hidden; white-space: pre-wrap;`;
 
-                        const input = document.createElement('span');
-                        input.contentEditable = 'true';
-                        input.className = 'fill-blank';
-                        input.style.cssText = `
-                            position: absolute;
-                            top: 0; left: 0;
-                            width: 100%;
-                            height: 100%;
-                            display: inline;
-                            color: #000;
-                            caret-color: #000;
-                            outline: none;
-                            border-bottom: 1.5px solid #000;
-                            font-family: inherit;
-                            font-size: inherit;
-                            font-weight: inherit;
-                            white-space: pre-wrap;
-                            overflow: hidden;
-                            cursor: text;
-                        `;
+                    const input = document.createElement('span');
+                    input.contentEditable = 'true';
+                    input.className = 'fill-blank';
+                    input.style.cssText = `
+                        position: absolute; top: 0; left: 0;
+                        width: 100%; height: 100%;
+                        display: inline; color: #C5A028; caret-ccolor: #C5A028;
+                        outline: none; border-bottom: 1.5px solid #C5A028;
+                        font-family: inherit; font-size: inherit; font-weight: inherit;
+                        white-space: pre-wrap; overflow: hidden; cursor: text;
+                    `;
 
-                        wrapper.appendChild(hidden);
-                        wrapper.appendChild(input);
-                        node.replaceWith(wrapper);
-                    }
+                    wrapper.appendChild(hiddenSpan);
+                    wrapper.appendChild(input);
+                    node.replaceWith(wrapper);
                 });
 
-                document.querySelectorAll('.bio-keyword').forEach(kw => {
-                    kw.contentEditable = 'false';
-                });
+                document.querySelectorAll('.bio-keyword').forEach(kw => { kw.contentEditable = 'false'; });
             });
 
         } else {
-            /* fill-blank 제거 */
             document.querySelectorAll('.fill-blank').forEach(el => el.remove());
-
             p.style.height = '';
             p.style.overflow = '';
-
-            /* plain-text 숨기기 */
-            document.querySelectorAll('.plain-text').forEach(el => {
-                el.style.visibility = 'hidden';
-            });
-
-            /* bio-keyword 원래 상태로 복원 */
+            document.querySelectorAll('.plain-text').forEach(el => { el.style.visibility = 'hidden'; });
             document.querySelectorAll('.bio-keyword').forEach(kw => {
                 kw.style.visibility = 'visible';
                 kw.style.pointerEvents = 'none';
@@ -857,51 +750,45 @@ window.addEventListener('load', async () => {
             scrollMsg.style.opacity = '0';
             clickMsg.style.opacity = '0';
             switchBtn.style.display = 'none';
-
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             setTimeout(() => {
                 clickMsg.innerHTML = `
-                <div style="width:100%;display:flex;flex-direction:column;padding:0;box-sizing:border-box;">
-                    <span style="display:block;text-align:left;padding-left:0.5vw;">HOVER</span>
-                    <span style="display:block;text-align:center;">AND</span>
-                    <span style="display:block;text-align:right;padding-right:3vw;">CLICK</span>
-                </div>
-            `;
-            clickMsg.style.fontSize = 'clamp(10px, 28vw, 28vh)';
-            clickMsg.style.lineHeight = '0.9';
-            clickMsg.style.justifyContent = 'flex-start';
-            clickMsg.style.alignItems = 'flex-start';
-            clickMsg.style.paddingTop = '2vh';
-            clickMsg.style.letterSpacing = '-0.02em';
-            clickMsg.style.overflow = 'visible';
+                    <div style="width:100%;display:flex;flex-direction:column;padding:0;box-sizing:border-box;">
+                        <span style="display:block;text-align:left;padding-left:0.5vw;">HOVER</span>
+                        <span style="display:block;text-align:center;">AND</span>
+                        <span style="display:block;text-align:right;padding-right:3vw;">CLICK</span>
+                    </div>
+                `;
+                clickMsg.style.fontSize = 'clamp(10px, 28vw, 28vh)';
+                clickMsg.style.lineHeight = '0.9';
+                clickMsg.style.justifyContent = 'flex-start';
+                clickMsg.style.alignItems = 'flex-start';
+                clickMsg.style.paddingTop = '2vh';
+                clickMsg.style.letterSpacing = '-0.02em';
+                clickMsg.style.overflow = 'visible';
                 clickMsg.style.opacity = '1';
             }, 600);
 
-            document.querySelectorAll('.bio-keyword').forEach(kw => {
-                kw.style.pointerEvents = 'none';
-            });
-
+            document.querySelectorAll('.bio-keyword').forEach(kw => { kw.style.pointerEvents = 'none'; });
             let scrollTimer = null;
             const onScroll = () => {
                 clearTimeout(scrollTimer);
                 scrollTimer = setTimeout(() => {
                     window.removeEventListener('scroll', onScroll);
-                    requestAnimationFrame(() => {
-                        requestAnimationFrame(() => {
-                            drawGroupOutlines(clickMsg);
-                        });
-                    });
-                }, 100);
-            };
-
-            window.addEventListener('scroll', onScroll);
-
-            if (window.scrollY === 0) {
-                requestAnimationFrame(() => {
+                    page.style.transform = 'none';
+                    page.style.transition = '';
                     requestAnimationFrame(() => {
                         drawGroupOutlines(clickMsg);
                     });
+                }, 100);
+            };
+            window.addEventListener('scroll', onScroll);
+            if (window.scrollY === 0) {
+                page.style.transform = 'none';
+                page.style.transition = '';
+                requestAnimationFrame(() => {
+                    drawGroupOutlines(clickMsg);
                 });
             }
         }
@@ -920,19 +807,16 @@ window.addEventListener('load', async () => {
         });
     });
 
+
     document.addEventListener('click', e => {
-        if (activeMenu && !activeMenu.contains(e.target) && e.target !== activeSpan) {
-            closeMenu();
-        }
+        if (activeMenu && !activeMenu.contains(e.target) && e.target !== activeSpan) closeMenu();
     });
 
     const backBtn = document.getElementById('back-btn');
     if (backBtn) {
         if (window.history.length > 1) {
             backBtn.style.display = 'flex';
-            backBtn.addEventListener('click', () => {
-                window.history.back();
-            });
+            backBtn.addEventListener('click', () => { window.history.back(); });
         } else {
             backBtn.style.display = 'none';
         }

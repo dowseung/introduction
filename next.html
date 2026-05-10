@@ -19,10 +19,11 @@
         }
 
         #next-page {
-            position: relative;
-            width: 100vw;
-            height: 300vh;
-        }
+    position: relative;
+    width: 100vw;
+    height: 300vh;
+    box-sizing: border-box;
+}
 
         .word-node {
     position: absolute;
@@ -33,15 +34,12 @@
     cursor: default;
     white-space: nowrap;
     user-select: none;
+    z-index: 1;
 }
 
 .word-node.faded {
     opacity: 0.3;
 }
-
-        .word-node.faded {
-            opacity: 0.3;
-        }
 
         #svg-lines {
             z-index: 0;
@@ -69,6 +67,11 @@
     </style>
 </head>
 <body>
+    <div id="site-banner">
+        <span>Introduction</span>
+        <span>of</span>
+        <span>Designers</span>
+    </div>
     <div id="next-page">
         <svg id="svg-lines"></svg>
     </div>

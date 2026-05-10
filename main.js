@@ -69,10 +69,10 @@ window.addEventListener('load', async () => {
     await typeWriter(textElement, originalText, 30);
 
     /* 잠깐 대기 후 페이지 전체 위로 올라가며 전환 */
-    await new Promise(res => setTimeout(res, 600));
+    await new Promise(res => setTimeout(res, 300));
     document.body.classList.add('slide-up');
 
-    await new Promise(res => setTimeout(res, 800));
+    await new Promise(res => setTimeout(res, 600));
     window.location.href = 'bio.html';
 });
 
