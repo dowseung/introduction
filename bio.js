@@ -124,7 +124,15 @@ function drawGroupOutlines(clickMsg) {
     document.getElementById('top-btn')?.remove();
 
     const page = document.getElementById('bio-page');
-    page.style.paddingRight = '25vw';
+    const bioText = document.getElementById('bio-text');
+    
+    // 1. 박스 외 텍스트 숨기기
+    if (bioText) {
+        bioText.style.position = 'relative';
+        bioText.style.zIndex = '2';
+        bioText.style.color = "transparent"; // 전체 투명하게
+    }
+
     const svgStyle = `position:absolute;top:0;left:0;width:${page.scrollWidth}px;height:${page.scrollHeight}px;pointer-events:none;`;
 
     const svgLines = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -137,15 +145,14 @@ function drawGroupOutlines(clickMsg) {
     svgBoxes.style.cssText = svgStyle + 'z-index:1;';
     page.insertBefore(svgBoxes, page.firstChild);
 
-    const bioText = document.getElementById('bio-text');
-    if (bioText) { bioText.style.position = 'relative'; bioText.style.zIndex = '2'; }
-
     const groups = {};
     document.querySelectorAll('.bio-keyword').forEach(span => {
+        // 2. 키워드만 검정색으로 표시
+        span.style.color = "#000";
+        
         const rowIdxAll = span.dataset.rowIdxAll || span.dataset.rowIdx || '';
         const rows = rowIdxAll.split(',').filter(r => r.trim() !== '');
-        const effectiveRows = rows.length > 0 ? rows : [span.dataset.rowIdx].filter(Boolean);
-        effectiveRows.forEach(rowIdx => {
+        rows.forEach(rowIdx => {
             if (!groups[rowIdx]) groups[rowIdx] = [];
             groups[rowIdx].push(span);
         });
@@ -154,13 +161,9 @@ function drawGroupOutlines(clickMsg) {
     const pad = 6;
     const r = 12;
     const pageBCR = page.getBoundingClientRect();
-    const scrollY = window.scrollY;
-    const scrollX = window.scrollX;
-    
-    svgLines.style.width = page.scrollWidth + 'px';
-    svgLines.style.height = page.scrollHeight + 'px';
-    svgBoxes.style.width = page.scrollWidth + 'px';
-    svgBoxes.style.height = page.scrollHeight + 'px';
+    const scrollTop = page.scrollTop; // window 대신 컨테이너 스크롤 사용
+    const scrollLeft = page.scrollLeft;
+
     const drawnRectKeys = new Set();
     const spanToRow = new Map();
 
@@ -169,11 +172,11 @@ function drawGroupOutlines(clickMsg) {
         const rects = [];
         spans.forEach(s => {
             Array.from(s.getClientRects()).forEach(rect => {
-                const x = Math.round(rect.left - pageBCR.left + scrollX - pad);
-                const y = Math.round(rect.top - pageBCR.top + scrollY - pad);
-                const w = Math.round(rect.width + pad * 2);
-                const h = Math.round(rect.height + pad * 2);
-                const key = `${x},${y},${w},${h}`;
+                const x = rect.left - pageBCR.left + scrollLeft - pad;
+                const y = rect.top - pageBCR.top + scrollTop - pad;
+                const w = rect.width + pad * 2;
+                const h = rect.height + pad * 2;
+                const key = `${Math.round(x)},${Math.round(y)}`;
                 if (drawnRectKeys.has(key)) return;
                 drawnRectKeys.add(key);
                 rects.push({ x, y, w, h, span: s });
@@ -189,10 +192,13 @@ function drawGroupOutlines(clickMsg) {
 
         rects.forEach((rect, i) => {
             const { x, y, w, h } = rect;
+            // 박스 경로
             boxPathD += `M ${x+r} ${y} L ${x+w-r} ${y} Q ${x+w} ${y} ${x+w} ${y+r} `;
             boxPathD += `L ${x+w} ${y+h-r} Q ${x+w} ${y+h} ${x+w-r} ${y+h} `;
             boxPathD += `L ${x+r} ${y+h} Q ${x} ${y+h} ${x} ${y+h-r} `;
             boxPathD += `L ${x} ${y+r} Q ${x} ${y} ${x+r} ${y} Z `;
+            
+            // 연결선 경로
             if (i < rects.length - 1) {
                 const next = rects[i + 1];
                 const x1 = x + w / 2, y1 = y + h;
@@ -206,8 +212,7 @@ function drawGroupOutlines(clickMsg) {
             linePath.setAttribute('d', linePathD);
             linePath.setAttribute('fill', 'none');
             linePath.setAttribute('stroke', '#000');
-            linePath.setAttribute('stroke-width', '2');
-            linePath.setAttribute('stroke-linecap', 'round');
+            linePath.setAttribute('stroke-width', '1.5');
             linePath.dataset.row = rowIdx;
             svgLines.appendChild(linePath);
         }
@@ -216,9 +221,7 @@ function drawGroupOutlines(clickMsg) {
         boxPath.setAttribute('d', boxPathD);
         boxPath.setAttribute('fill', '#ebebeb');
         boxPath.setAttribute('stroke', '#000');
-        boxPath.setAttribute('stroke-width', '2');
-        boxPath.setAttribute('stroke-linecap', 'round');
-        boxPath.setAttribute('stroke-linejoin', 'round');
+        boxPath.setAttribute('stroke-width', '1.5');
         boxPath.dataset.row = rowIdx;
         svgBoxes.appendChild(boxPath);
     });
@@ -688,45 +691,119 @@ window.addEventListener('load', async () => {
         <span style="display:block;text-align:right;">CHANGE</span>
     </div>
     `;
-    const circleCol = document.createElement('div');
-    circleCol.id = 'circle-col';
-    circleCol.style.cssText = `
-    position: absolute;
-    top: 0;
-    left: 55px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    pointer-events: none;
-    z-index: 0;
-`;
+    function buildTextOutline() {
+        document.getElementById('text-outline-svg')?.remove();
+        const bioTextEl = document.getElementById('bio-text');
+        if (!bioTextEl) return;
 
-    const circleSize = Math.min(window.innerWidth / 5, window.innerHeight / 5);
-    const bioTextEl = document.getElementById('bio-text');
-    const bioHeight = bioTextEl ? bioTextEl.offsetHeight : window.innerHeight * 3;
-    const count = Math.ceil(bioHeight / circleSize) + 2;
+        const pageBCR = page.getBoundingClientRect();
+        const pad = 10; 
 
-    let totalHeight = 0;
-    let i = 0;
-    while (totalHeight < bioHeight) {
-        const size = circleSize * (1 + i * 0.3);
-        const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        s.setAttribute('viewBox', '0 0 100 100');
-        s.setAttribute('width', size);
-        s.setAttribute('height', size);
-        s.style.display = 'block';
-        s.style.flexShrink = '0';
-        const strokeWidth = (1.5 * circleSize / size).toFixed(2);
-        s.innerHTML = `<circle cx="50" cy="50" r="45" fill="none" stroke="#FF00FF" stroke-width="${strokeWidth}"/>`;
-        circleCol.appendChild(s);
-        totalHeight += size;
-        i++;
+        const allRects = [];
+        const range = document.createRange();
+        bioTextEl.childNodes.forEach(node => {
+            if (node.nodeType !== Node.TEXT_NODE && node.nodeType !== Node.ELEMENT_NODE) return;
+            range.selectNode(node);
+            Array.from(range.getClientRects()).forEach(r => {
+                if (r.width > 2 && r.height > 2) allRects.push(r);
+            });
+        });
+
+        const lines = [];
+        allRects.forEach(r => {
+            const cy = r.top + r.height / 2;
+            const existing = lines.find(l => Math.abs(l.cy - cy) < r.height * 0.5);
+            if (existing) {
+                existing.right = Math.max(existing.right, r.right);
+                existing.top = Math.min(existing.top, r.top);
+                existing.bottom = Math.max(existing.bottom, r.bottom);
+                existing.cy = (existing.top + existing.bottom) / 2;
+            } else {
+                lines.push({ right: r.right, top: r.top, bottom: r.bottom, cy });
+            }
+        });
+        lines.sort((a, b) => a.top - b.top);
+        if (lines.length === 0) return;
+
+        const abs = lines.map(l => ({
+            x: (l.right - pageBCR.left) + pad,
+            top: (l.top - pageBCR.top) + window.scrollY,
+            bottom: (l.bottom - pageBCR.top) + window.scrollY,
+        }));
+
+        let pathD = `M ${abs[0].x} ${abs[0].top}`;
+        abs.forEach((line, i) => {
+            pathD += ` L ${line.x} ${line.bottom}`;
+            if (i < abs.length - 1) {
+                const next = abs[i + 1];
+                pathD += ` L ${next.x} ${line.bottom}`;
+                if (next.top > line.bottom + 1) {
+                    pathD += ` L ${next.x} ${next.top}`;
+                }
+            }
+        });
+
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNS, 'svg');
+        svg.id = 'text-outline-svg';
+        svg.style.cssText = `position:absolute;top:0;left:0;width:${page.scrollWidth}px;height:${page.scrollHeight}px;pointer-events:none;z-index:2;overflow:visible;`;
+
+        const path = document.createElementNS(svgNS, 'path');
+        path.setAttribute('d', pathD);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', '#C5A028');
+        path.setAttribute('stroke-width', '3');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(path);
+        page.appendChild(svg);
     }
 
-    page.appendChild(circleCol);
+    function buildCircleCol() {
+        document.getElementById('circle-col')?.remove();
+        const circleCol = document.createElement('div');
+        circleCol.id = 'circle-col';
+        circleCol.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+    `;
+        const circleSize = Math.min(window.innerWidth / 5, window.innerHeight / 5);
+        const bioTextEl = document.getElementById('bio-text');
+        const bioHeight = bioTextEl ? bioTextEl.offsetHeight : window.innerHeight * 3;
 
+        let totalHeight = 0;
+        let idx = 0;
+        while (totalHeight < bioHeight) {
+            const size = Math.min(circleSize * (1 + idx * 0.3), window.innerWidth);
+            const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            s.setAttribute('viewBox', '0 0 100 100');
+            s.setAttribute('width', size);
+            s.setAttribute('height', size);
+            s.style.display = 'block';
+            s.style.flexShrink = '0';
+            const strokeWidth = (1.5 * circleSize / size).toFixed(2);
+            s.innerHTML = `<circle cx="50" cy="50" r="45" fill="none" stroke="#FF00FF" stroke-width="${strokeWidth}"/>`;
+            circleCol.appendChild(s);
+            totalHeight += size;
+            idx++;
+        }
+        page.appendChild(circleCol);
+    }
+
+    buildCircleCol();
     document.body.appendChild(scrollMsg);
-    setTimeout(() => { scrollMsg.style.opacity = '1'; }, 100);
+    setTimeout(() => {
+        scrollMsg.style.opacity = '1';
+        buildTextOutline();
+    }, 100);
 
     const switchBtn = document.createElement('div');
     switchBtn.id = 'switch-btn';
@@ -742,6 +819,7 @@ window.addEventListener('load', async () => {
             clickMsg.style.opacity = '0';
             scrollMsg.style.opacity = '0';
             document.getElementById('circle-col')?.remove();
+            document.getElementById('text-outline-svg')?.remove();
             window.scrollTo({ top: 0, behavior: 'smooth' });
             setTimeout(() => {
                 clickMsg.innerHTML = 'FILL<br>IN THE<br>BLANK';
@@ -760,7 +838,7 @@ window.addEventListener('load', async () => {
                 kw.style.visibility = 'visible';
             });
 
-            p.style.height = p.offsetHeight + 'px';
+            p.style.height = '';
             p.style.overflow = 'hidden';
             p.style.textAlign = 'left';
 
@@ -792,15 +870,10 @@ window.addEventListener('load', async () => {
                 p.style.outline = 'none';
                 p.style.caretColor = '#000';
 
-                Array.from(p.childNodes).forEach(node => {
-                    if (node.nodeType !== Node.TEXT_NODE) return;
-                    const wrapper = document.createElement('span');
-                    wrapper.style.cssText = `position: relative; display: inline; white-space: pre-wrap;`;
-
-                    const hiddenSpan = document.createElement('span');
-                    hiddenSpan.textContent = node.textContent;
-                    hiddenSpan.className = 'plain-text';
-                    hiddenSpan.style.cssText = `visibility: hidden; white-space: pre-wrap;`;
+                document.querySelectorAll('.bio-keyword').forEach(kw => {
+                    kw.style.position = 'relative';
+                    kw.style.display = 'inline';
+                    kw.style.color = 'transparent';
 
                     const input = document.createElement('span');
                     input.contentEditable = 'true';
@@ -814,31 +887,45 @@ window.addEventListener('load', async () => {
                     input.style.cssText = `
                         position: absolute; top: 0; left: 0;
                         width: 100%; height: 100%;
-                        display: inline; color: #C5A028; caret-ccolor: #C5A028;
+                        display: inline; color: #C5A028; caret-color: #C5A028;
                         outline: none; border-bottom: 1.5px solid #C5A028;
                         font-family: inherit; font-size: inherit; font-weight: inherit;
                         white-space: pre-wrap; overflow: hidden; cursor: text;
+                        background: transparent;
                     `;
-
-                    wrapper.appendChild(hiddenSpan);
-                    wrapper.appendChild(input);
-                    node.replaceWith(wrapper);
+                    kw.appendChild(input);
                 });
-
-                document.querySelectorAll('.bio-keyword').forEach(kw => { kw.contentEditable = 'false'; });
             });
 
         } else {
             document.getElementById('typing-output')?.remove();
             page.style.paddingRight = '25vw';
             document.querySelectorAll('.fill-blank').forEach(el => el.remove());
-            p.style.height = '';
-            p.style.overflow = '';
-            document.querySelectorAll('.plain-text').forEach(el => { el.style.visibility = 'hidden'; });
+            document.querySelectorAll('.plain-text-visible').forEach(el => {
+                const txt = document.createTextNode(el.textContent);
+                el.replaceWith(txt);
+            });
+            document.querySelectorAll('.keyword-blank-wrapper').forEach(wrapper => {
+                const span = document.createElement('span');
+                span.textContent = wrapper.dataset.origText;
+                span.className = 'bio-keyword';
+                span.dataset.colIdx = wrapper.dataset.colIdx;
+                span.dataset.rowIdx = wrapper.dataset.rowIdx;
+                span.dataset.rowIdxAll = wrapper.dataset.rowIdxAll;
+                span.style.visibility = 'visible';
+                span.style.pointerEvents = 'none';
+                wrapper.replaceWith(span);
+            });
+            
             document.querySelectorAll('.bio-keyword').forEach(kw => {
+                kw.style.color = '';
+                kw.style.position = '';
                 kw.style.visibility = 'visible';
                 kw.style.pointerEvents = 'none';
             });
+            p.style.height = '';
+            p.style.overflow = '';
+            document.querySelectorAll('.plain-text').forEach(el => { el.style.visibility = 'hidden'; });
 
             scrollMsg.style.opacity = '0';
             clickMsg.style.opacity = '0';
@@ -889,7 +976,27 @@ window.addEventListener('load', async () => {
         }
     });
 
+    function getBioFontSize() {
+        return Math.max(16, Math.min(30, window.innerWidth / 45));
+    }
+
+    function applyBioFontSize() {
+        const bioTextEl = document.getElementById('bio-text');
+        if (bioTextEl) bioTextEl.style.fontSize = getBioFontSize() + 'px';
+    }
+
+    applyBioFontSize();
+
+    let resizeOutlineTimer = null;
     window.addEventListener('resize', () => {
+        applyBioFontSize();
+        if (document.getElementById('circle-col')) buildCircleCol();
+        if (document.getElementById('text-outline-svg')) {
+            clearTimeout(resizeOutlineTimer);
+            resizeOutlineTimer = setTimeout(() => {
+                requestAnimationFrame(() => requestAnimationFrame(() => buildTextOutline()));
+            }, 150);
+        }
         if (document.getElementById('col-list')) return;
         const svgLines = document.getElementById('connect-svg-lines');
         const svgBoxes = document.getElementById('connect-svg-boxes');
@@ -900,16 +1007,17 @@ window.addEventListener('load', async () => {
                 drawGroupOutlines(clickMsg);
             });
         });
-        const circleColEl = document.getElementById('circle-col');
-        if (circleColEl) {
-            const newSize = Math.min(window.innerWidth / 5, window.innerHeight / 5);
-            circleColEl.querySelectorAll('svg').forEach(s => {
-                s.setAttribute('width', newSize);
-                s.setAttribute('height', newSize);
-            });
-        }
     });
 
+
+    let scrollOutlineTimer = null;
+    window.addEventListener('scroll', () => {
+        if (!document.getElementById('text-outline-svg')) return;
+        clearTimeout(scrollOutlineTimer);
+        scrollOutlineTimer = setTimeout(() => {
+            requestAnimationFrame(() => buildTextOutline());
+        }, 50);
+    });
 
     document.addEventListener('click', e => {
         if (activeMenu && !activeMenu.contains(e.target) && e.target !== activeSpan) closeMenu();
@@ -925,6 +1033,7 @@ window.addEventListener('load', async () => {
         }
     }
 });
+
 function showNextView() {
     const page = document.getElementById('bio-page');
 
