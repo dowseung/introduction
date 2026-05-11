@@ -1086,6 +1086,58 @@ window.addEventListener('load', async () => {
 
     initBannerDropdown();
 
+    // 해시 진입 처리
+    const _hash = window.location.hash;
+    if (_hash === '#names') {
+        setTimeout(() => {
+            goToNamesPage();
+            history.replaceState(null, '', window.location.pathname);
+        }, 1400);
+    } else if (_hash === '#fillinblank') {
+        setTimeout(() => {
+            history.replaceState(null, '', window.location.pathname);
+            const sw = document.getElementById('switch-btn');
+            if (sw) sw.click();
+        }, 1400);
+    } else if (_hash === '#hoverandclick') {
+        setTimeout(() => {
+            history.replaceState(null, '', window.location.pathname);
+            const sw = document.getElementById('switch-btn');
+            if (sw) {
+                sw.click();
+                // switch-btn을 두 번 클릭해야 HOVER AND CLICK 단계로 진입
+                setTimeout(() => { sw.click(); }, 700);
+            }
+        }, 1400);
+    } else if (_hash === '#collist') {
+        setTimeout(() => {
+            history.replaceState(null, '', window.location.pathname);
+            const sw = document.getElementById('switch-btn');
+            if (sw) {
+                sw.click();
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('scroll'));
+                }, 700);
+            }
+        }, 1400);
+    } else if (_hash === '#whose') {
+        setTimeout(() => {
+            history.replaceState(null, '', window.location.pathname);
+            const sw = document.getElementById('switch-btn');
+            if (sw) {
+                sw.click();
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('scroll'));
+                    setTimeout(() => {
+                        const bb = document.getElementById('bottom-btn');
+                        if (bb) bb.click();
+                        else showNextView();
+                    }, 800);
+                }, 700);
+            }
+        }, 1400);
+    }
+
     const backBtn = document.getElementById('back-btn');
     if (backBtn) {
         if (window.history.length > 1) {
@@ -1105,10 +1157,11 @@ function initBannerDropdown() {
 
     const pages = [
         { label: 'READ SCROLL CHANGE' },
-        { label: 'CLICK THE TEXT' },
         { label: 'FILL IN THE BLANK' },
         { label: 'HOVER AND CLICK' },
+        { label: 'DESIGNER NAME JOB...' },
         { label: 'WHOSE?' },
+        { label: 'DESIGNERS' },
     ];
 
     const dropdown = document.createElement('div');
@@ -1128,14 +1181,15 @@ function initBannerDropdown() {
         item.textContent = pg.label;
         item.style.cssText = `
             display: block;
-            font-family: "AvantGarde", sans-serif;
+            font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
             font-size: 14px;
-            font-weight: 100;
-            color: #00FF00;
+            font-weight: 900;
+            color: #C5A028;
             cursor: pointer;
             line-height: 2;
             white-space: nowrap;
             text-decoration: none;
+            letter-spacing: 0.05em;
         `;
         item.addEventListener('mouseenter', () => { item.style.textDecoration = 'underline'; });
         item.addEventListener('mouseleave', () => { item.style.textDecoration = 'none'; });
@@ -1145,26 +1199,41 @@ function initBannerDropdown() {
 
             if (pg.label === 'READ SCROLL CHANGE') {
                 window.location.href = 'bio.html';
-            } else if (pg.label === 'CLICK THE TEXT') {
-                window.location.href = 'bio.html';
             } else if (pg.label === 'FILL IN THE BLANK') {
                 if (window.location.pathname.includes('bio')) {
-                    document.getElementById('switch-btn')?.click();
+                    const sw = document.getElementById('switch-btn');
+                    if (sw && !sw.classList.contains('on')) sw.click();
                 } else {
-                    window.location.href = 'bio.html';
+                    window.location.href = 'bio.html#fillinblank';
                 }
             } else if (pg.label === 'HOVER AND CLICK') {
                 if (window.location.pathname.includes('bio')) {
                     const sw = document.getElementById('switch-btn');
                     if (sw && sw.style.display !== 'none') sw.click();
                 } else {
-                    window.location.href = 'bio.html';
+                    window.location.href = 'bio.html#hoverandclick';
+                }
+            } else if (pg.label === 'DESIGNER NAME JOB...') {
+                const bb = document.getElementById('bottom-btn');
+                if (bb) {
+                    bb.click();
+                } else {
+                    window.location.href = 'bio.html#collist';
                 }
             } else if (pg.label === 'WHOSE?') {
-                if (window.location.pathname.includes('bio')) {
-                    document.getElementById('bottom-btn-2')?.click();
+                const bb2 = document.getElementById('bottom-btn-2');
+                if (bb2) {
+                    bb2.click();
+                } else if (window.location.pathname.includes('bio')) {
+                    showNextView();
                 } else {
-                    window.location.href = 'bio.html';
+                    window.location.href = 'bio.html#whose';
+                }
+            } else if (pg.label === 'DESIGNERS') {
+                if (window.location.pathname.includes('bio')) {
+                    goToNamesPage();
+                } else {
+                    window.location.href = 'bio.html#names';
                 }
             }
         });
@@ -1175,23 +1244,112 @@ function initBannerDropdown() {
 
     bannerOf.style.cursor = 'pointer';
     bannerOf.style.transition = 'color 0.2s ease';
+    bannerOf.style.pointerEvents = 'auto';
+
+    let hideTimer = null;
 
     bannerOf.addEventListener('mouseenter', () => {
+        clearTimeout(hideTimer);
         bannerOf.style.color = '#FF00FF';
         dropdown.style.display = 'flex';
     });
-    bannerOf.addEventListener('mouseleave', (e) => {
-        if (!dropdown.contains(e.relatedTarget)) {
+    bannerOf.addEventListener('mouseleave', () => {
+        hideTimer = setTimeout(() => {
             bannerOf.style.color = '';
             dropdown.style.display = 'none';
-        }
+        }, 150);
     });
-    dropdown.addEventListener('mouseleave', (e) => {
-        if (e.relatedTarget !== bannerOf) {
+    dropdown.addEventListener('mouseenter', () => {
+        clearTimeout(hideTimer);
+    });
+    dropdown.addEventListener('mouseleave', () => {
+        hideTimer = setTimeout(() => {
             bannerOf.style.color = '';
             dropdown.style.display = 'none';
-        }
+        }, 150);
     });
+}
+
+function goToNamesPage() {
+    const page = document.getElementById('bio-page');
+    if (!page) return;
+
+    // 현재 단계 요소들 모두 정리
+    document.getElementById('click-msg')?.remove();
+    document.getElementById('scroll-msg')?.remove();
+    document.getElementById('col-list')?.remove();
+    document.getElementById('connect-svg-lines')?.remove();
+    document.getElementById('connect-svg-boxes')?.remove();
+    document.getElementById('top-btn')?.remove();
+    document.getElementById('bottom-btn')?.remove();
+    document.getElementById('bottom-btn-2')?.remove();
+    document.getElementById('bottom-btn-3')?.remove();
+    document.getElementById('typing-output')?.remove();
+    document.getElementById('switch-btn')?.remove();
+    document.getElementById('whose-graphic')?.remove();
+    document.getElementById('a-text-panel')?.remove();
+    document.getElementById('bio-text')?.remove();
+    document.getElementById('circle-col')?.remove();
+    document.getElementById('text-outline-svg')?.remove();
+    document.getElementById('whose-action-panel')?.remove();
+
+    const bColVals = [];
+    sheetRows.slice(1).forEach(row => {
+        const val = (row[1] || '').trim();
+        if (val) bColVals.push(val);
+    });
+    for (let i = bColVals.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [bColVals[i], bColVals[j]] = [bColVals[j], bColVals[i]];
+    }
+
+    page.innerHTML = '';
+    page.style.paddingRight = '0';
+    page.style.paddingTop = '0';
+    page.style.paddingLeft = '0';
+    page.style.paddingBottom = '0';
+    page.style.height = 'auto';
+    page.style.minHeight = '100vh';
+    page.style.overflow = 'visible';
+    page.style.transform = 'none';
+    page.style.transition = '';
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+    window.scrollTo(0, 0);
+
+    const listWrap = document.createElement('div');
+    listWrap.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        padding: 10vh 55px;
+        box-sizing: border-box;
+        gap: 5vh;
+    `;
+
+    bColVals.forEach(val => {
+        const item = document.createElement('div');
+        item.textContent = val;
+        item.style.cssText = `
+            font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
+            font-size: clamp(48px, 10vw, 160px);
+            font-weight: 900;
+            line-height: 1;
+            text-align: center;
+            word-break: keep-all;
+            width: 100%;
+        `;
+        listWrap.appendChild(item);
+    });
+
+    const arrowEl = document.createElement('div');
+    arrowEl.style.cssText = `display: flex; justify-content: center; padding: 10vh 0 15vh; cursor: pointer;`;
+    arrowEl.innerHTML = arrowSVG;
+    arrowEl.addEventListener('click', () => { window.location.href = 'end.html'; });
+    listWrap.appendChild(arrowEl);
+    page.appendChild(listWrap);
 }
 
 function showNextView() {
