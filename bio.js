@@ -157,7 +157,6 @@ function drawGroupOutlines(clickMsg) {
     const scrollY = window.scrollY;
     const scrollX = window.scrollX;
     
-    // SVG 크기를 현재 페이지 크기에 맞게 업데이트
     svgLines.style.width = page.scrollWidth + 'px';
     svgLines.style.height = page.scrollHeight + 'px';
     svgBoxes.style.width = page.scrollWidth + 'px';
@@ -298,11 +297,15 @@ function drawGroupOutlines(clickMsg) {
     topBtn.addEventListener('click', () => {
         topBtn.style.display = 'none';
         clickMsg.style.opacity = '0';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        setTimeout(() => {
-            enterMergeMode();
-            setTimeout(() => { document.getElementById('bottom-btn')?.click(); }, 100);
-        }, 300);
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        window.scrollTo(0, 0);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                enterMergeMode();
+                setTimeout(() => { document.getElementById('bottom-btn')?.click(); }, 100);
+            });
+        });
     });
 
     function enterMergeMode() {
@@ -364,7 +367,10 @@ function drawGroupOutlines(clickMsg) {
         document.body.appendChild(bottomBtn);
 
         bottomBtn.addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            let nextViewTriggered = false;
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+            window.scrollTo(0, 0);
             setTimeout(() => {
                 const svgLinesEl = document.getElementById('connect-svg-lines');
                 const svgBoxesEl = document.getElementById('connect-svg-boxes');
@@ -381,11 +387,11 @@ function drawGroupOutlines(clickMsg) {
                     clickMsg.innerHTML = lines.map(l =>
                         `<span class="label-line" style="display:block;font-weight:100;text-align:right;">${l}</span>`
                     ).join('');
-                    clickMsg.style.fontSize = 'clamp(4px, 8.5vh, 8.5vw)';
+                    clickMsg.style.fontSize = 'clamp(4px, 6.5vh, 6.5vw)';
                     clickMsg.style.lineHeight = '1.05';
                     clickMsg.style.justifyContent = 'flex-start';
                     clickMsg.style.alignItems = 'flex-end';
-                    clickMsg.style.paddingTop = '0';
+                    clickMsg.style.paddingTop = '60px';
                     clickMsg.style.paddingRight = '55px';
                     clickMsg.style.letterSpacing = '0';
                     clickMsg.style.overflow = 'hidden';
@@ -393,8 +399,8 @@ function drawGroupOutlines(clickMsg) {
                 }
 
                 setTimeout(() => {
+                    if (!document.getElementById('bio-text') && !document.getElementById('col-list')) return;
                     if (svgLinesEl) svgLinesEl.style.display = 'none';
-                    if (svgBoxesEl) svgBoxesEl.style.display = 'none';
 
                     document.querySelectorAll('.bio-keyword').forEach(kw => { kw.style.visibility = 'hidden'; });
 
@@ -428,7 +434,7 @@ function drawGroupOutlines(clickMsg) {
                         flex-direction: column;
                         align-items: flex-start;
                         gap: 0.3em;
-                        ${colIdx > 1 ? 'border-left: 1px solid #000;' : ''}
+                        ${colIdx > 1 ? 'border-left: 1px solid #C5A028;' : ''}
                         padding-left: ${colIdx > 1 ? '0.5vw' : '0'};
                     `;
 
@@ -504,11 +510,16 @@ function drawGroupOutlines(clickMsg) {
                     page.style.height = 'auto';
                     page.style.minHeight = '0';
                     page.style.overflow = 'visible';
+                    document.body.style.overflow = '';
+                    document.documentElement.style.overflow = '';
                     page.appendChild(listContainer);
 
                     requestAnimationFrame(() => {
                         listContainer.style.opacity = '1';
                         bottomBtn.remove();
+                        document.getElementById('bottom-btn-2')?.remove();
+                        document.getElementById('bottom-btn-3')?.remove();
+                        document.getElementById('top-btn')?.remove();
 
                         const bottomBtn2 = document.createElement('div');
                         bottomBtn2.id = 'bottom-btn-2';
@@ -517,17 +528,23 @@ function drawGroupOutlines(clickMsg) {
 
                         bottomBtn2.addEventListener('click', () => {
                             bottomBtn2.remove();
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                            const onScroll = () => {
-                                if (window.scrollY <= 5) {
-                                    window.removeEventListener('scroll', onScroll);
+                            document.body.style.overflow = 'hidden';
+                            document.documentElement.style.overflow = 'hidden';
+                            page.style.height = '100vh';
+                            page.style.overflow = 'hidden';
+                            window.scrollTo(0, 0);
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(() => {
                                     document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
                                     document.body.style.transform = 'translateY(-100%)';
-                                    setTimeout(() => { window.location.href = 'next.html'; }, 800);
-                                }
-                            };
-                            window.addEventListener('scroll', onScroll);
-                            if (window.scrollY <= 5) onScroll();
+                                    setTimeout(() => {
+                                        document.body.style.transform = 'none';
+                                        document.body.style.transition = '';
+                                        window.scrollTo(0, 0);
+                                        showNextView();
+                                    }, 800);
+                                });
+                            });
                         });
                     });
                 }, 400);
@@ -731,8 +748,11 @@ window.addEventListener('load', async () => {
                 clickMsg.style.fontSize = 'clamp(8vw, 30vw, 33vh)';
                 clickMsg.style.lineHeight = '0.95';
                 clickMsg.style.justifyContent = 'flex-start';
-                clickMsg.style.paddingTop = '10px';
+                clickMsg.style.alignItems = 'flex-start';
+                clickMsg.style.paddingTop = '60px';
+                clickMsg.style.paddingLeft = '55px';
                 clickMsg.style.opacity = '1';
+                clickMsg.style.textAlign = 'left';
             }, 600);
 
             document.querySelectorAll('.bio-keyword').forEach(kw => {
@@ -837,7 +857,7 @@ window.addEventListener('load', async () => {
                 clickMsg.style.lineHeight = '0.9';
                 clickMsg.style.justifyContent = 'flex-start';
                 clickMsg.style.alignItems = 'flex-start';
-                clickMsg.style.paddingTop = '2vh';
+                clickMsg.style.paddingTop = '60px';
                 clickMsg.style.letterSpacing = '-0.02em';
                 clickMsg.style.overflow = 'visible';
                 clickMsg.style.opacity = '1';
@@ -880,7 +900,6 @@ window.addEventListener('load', async () => {
                 drawGroupOutlines(clickMsg);
             });
         });
-        // 원 크기 업데이트
         const circleColEl = document.getElementById('circle-col');
         if (circleColEl) {
             const newSize = Math.min(window.innerWidth / 5, window.innerHeight / 5);
@@ -906,3 +925,247 @@ window.addEventListener('load', async () => {
         }
     }
 });
+function showNextView() {
+    const page = document.getElementById('bio-page');
+
+    document.getElementById('click-msg')?.remove();
+    document.getElementById('scroll-msg')?.remove();
+    document.getElementById('col-list')?.remove();
+    document.getElementById('connect-svg-lines')?.remove();
+    document.getElementById('connect-svg-boxes')?.remove();
+    document.getElementById('top-btn')?.remove();
+    document.getElementById('bottom-btn')?.remove();
+    document.getElementById('bottom-btn-2')?.remove();
+    document.getElementById('bottom-btn-3')?.remove();
+    document.getElementById('typing-output')?.remove();
+
+    page.innerHTML = '';
+    page.style.paddingRight = '0';
+    page.style.paddingTop = '0';
+    page.style.paddingLeft = '0';
+    page.style.paddingBottom = '0';
+    page.style.height = '100vh';
+    page.style.minHeight = '100vh';
+    page.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+
+    const whoseMsg = document.createElement('div');
+    whoseMsg.style.cssText = `
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-start;
+        font-family: "AvantGarde", sans-serif;
+        font-weight: 100;
+        color: #00FF00;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+    `;
+    whoseMsg.innerHTML = `
+    <div style="text-align:left; padding: 60px 0 0 55px;">
+        <span style="display:block;font-size:min(18vw, 45vh);line-height:1;letter-spacing:0.05em;white-space:nowrap;color:#00FF00;">WHOSE?</span>
+    </div>`;
+    document.body.appendChild(whoseMsg);
+
+    const textPairs = sheetRows.slice(1)
+        .map(row => ({ a: (row[0] || '').trim(), b: (row[1] || '').trim() }))
+        .filter(p => p.a);
+
+    for (let i = textPairs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [textPairs[i], textPairs[j]] = [textPairs[j], textPairs[i]];
+    }
+
+    function getNumCols() {
+        const w = window.innerWidth;
+        if (w >= 1200) return 8;
+        if (w >= 900) return 6;
+        if (w >= 600) return 4;
+        return 2;
+    }
+
+    let resizeTimer = null;
+
+    function renderGrid() {
+        document.getElementById('col-container')?.remove();
+
+        const NUM_COLS = getNumCols();
+        const padLeft = 55, padRight = 40, gap = 20;
+        const totalGap = (NUM_COLS - 1) * gap;
+        const colWidth = (window.innerWidth - padLeft - padRight - totalGap) / NUM_COLS;
+        const fontSize = Math.max(6, Math.min(13, colWidth / 10));
+
+        const container = document.createElement('div');
+        container.id = 'col-container';
+        container.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(${NUM_COLS}, minmax(0, 1fr));
+        align-items: start;
+        width: 100%;
+        padding: 60px 25vw 120px ${padLeft}px;
+            box-sizing: border-box;
+            column-gap: ${gap}px;
+            overflow-x: hidden;
+        `;
+
+        const numRows = Math.ceil(textPairs.length / NUM_COLS);
+        for (let r = 0; r < numRows; r++) {
+            for (let c = 0; c < NUM_COLS; c++) {
+                const idx = r * NUM_COLS + c;
+                const wrapper = document.createElement('div');
+                wrapper.style.cssText = `position: relative; padding-top: 20px; padding-bottom: 20px; border-top: 1.5px solid #C5A028;`;
+
+                if (idx < textPairs.length) {
+                    const blockText = textPairs[idx].a;
+                    const blockName = textPairs[idx].b || blockText.slice(0, 20);
+
+                    const block = document.createElement('div');
+                    block.style.cssText = `
+                        position: relative;
+                        font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
+                        font-size: ${fontSize}px;
+                        font-weight: 900;
+                        line-height: 1.6;
+                        overflow-wrap: break-word;
+                        word-break: keep-all;
+                    `;
+
+                    const textNode = document.createElement('span');
+                    textNode.textContent = blockText;
+                    textNode.style.cssText = `display: block; position: relative; z-index: 1;`;
+                    block.appendChild(textNode);
+
+                    const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svgEl.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; opacity: 0; transition: opacity 0.2s ease;`;
+                    const rectBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rectBg.setAttribute('width', '100%'); rectBg.setAttribute('height', '100%');
+                    rectBg.setAttribute('fill', 'rgba(0,255,0,0.1)'); rectBg.setAttribute('stroke', 'none');
+                    svgEl.appendChild(rectBg);
+                    const rectBorder = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rectBorder.setAttribute('width', '100%'); rectBorder.setAttribute('height', '100%');
+                    rectBorder.setAttribute('fill', 'none'); rectBorder.setAttribute('stroke', '#00FF00');
+                    rectBorder.setAttribute('stroke-width', '1.5');
+                    svgEl.appendChild(rectBorder);
+                    block.appendChild(svgEl);
+
+                    const copyBtn = document.createElement('div');
+                    copyBtn.style.cssText = `position: absolute; top: 18px; left: 50%; transform: translateX(-50%); cursor: pointer; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; z-index: 10; line-height: 0;`;
+                    copyBtn.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="12" height="12"/><polyline points="5,15 3,15 3,3 15,3 15,5"/></svg>`;
+                    block.appendChild(copyBtn);
+
+                    const dlBtn = document.createElement('div');
+                    dlBtn.style.cssText = `position: absolute; top: 70px; left: 50%; transform: translateX(-50%); cursor: pointer; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; z-index: 10; line-height: 0;`;
+                    dlBtn.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7,10 12,15 17,10"/><line x1="5" y1="20" x2="19" y2="20"/></svg>`;
+                    block.appendChild(dlBtn);
+                    wrapper.appendChild(block);
+
+                    wrapper.addEventListener('mouseenter', () => {
+                        const bRect = block.getBoundingClientRect();
+                        const perimeter = 2 * (bRect.width + bRect.height);
+                        rectBorder.style.transition = 'none';
+                        rectBorder.style.strokeDasharray = perimeter;
+                        rectBorder.style.strokeDashoffset = perimeter;
+                        svgEl.style.opacity = '1';
+                        requestAnimationFrame(() => { requestAnimationFrame(() => {
+                            rectBorder.style.transition = 'stroke-dashoffset 0.6s ease';
+                            rectBorder.style.strokeDashoffset = '0';
+                        }); });
+                        copyBtn.style.opacity = '1'; copyBtn.style.pointerEvents = 'auto';
+                        dlBtn.style.opacity = '1'; dlBtn.style.pointerEvents = 'auto';
+                    });
+                    wrapper.addEventListener('mouseleave', () => {
+                        svgEl.style.opacity = '0';
+                        copyBtn.style.opacity = '0'; copyBtn.style.pointerEvents = 'none';
+                        dlBtn.style.opacity = '0'; dlBtn.style.pointerEvents = 'none';
+                    });
+                    copyBtn.addEventListener('mouseenter', () => { copyBtn.style.opacity = '0.3'; });
+                    copyBtn.addEventListener('mouseleave', () => { copyBtn.style.opacity = '1'; });
+                    copyBtn.addEventListener('click', (e) => { e.stopPropagation(); navigator.clipboard.writeText(blockText); });
+                    dlBtn.addEventListener('mouseenter', () => { dlBtn.style.opacity = '0.3'; });
+                    dlBtn.addEventListener('mouseleave', () => { dlBtn.style.opacity = '1'; });
+                    dlBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const blob = new Blob([blockText], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = blockName.replace(/\s+/g, '_') + '.txt';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    });
+                }
+                container.appendChild(wrapper);
+            }
+        }
+
+        page.appendChild(container);
+        page.style.height = 'auto';
+        page.style.minHeight = '100vh';
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+        window.scrollTo(0, 0);
+    }
+
+    renderGrid();
+
+    const bottomBtn3 = document.createElement('div');
+    bottomBtn3.id = 'bottom-btn-3';
+    bottomBtn3.style.cssText = `position: fixed; top: 30px; right: 55px; cursor: pointer; z-index: 10; line-height: 0; display: none;`;
+    bottomBtn3.innerHTML = arrowSVG;
+    document.body.appendChild(bottomBtn3);
+
+    bottomBtn3.addEventListener('click', () => {
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        window.scrollTo(0, 0);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
+                document.body.style.transform = 'translateY(-100%)';
+                setTimeout(() => { window.location.href = 'end.html'; }, 800);
+            });
+        });
+    });
+
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => { renderGrid(); }, 200);
+    });
+
+    const whoseBtn = document.createElement('div');
+    whoseBtn.id = 'bottom-btn-2';
+    whoseBtn.style.cssText = `position: fixed; top: 30px; right: 55px; cursor: pointer; z-index: 11; line-height: 0;`;
+    whoseBtn.innerHTML = arrowSVG;
+    document.body.appendChild(whoseBtn);
+
+    whoseBtn.addEventListener('click', () => {
+        whoseBtn.remove();
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        page.style.height = '100vh';
+        page.style.overflow = 'hidden';
+        window.scrollTo(0, 0);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
+                document.body.style.transform = 'translateY(-100%)';
+                setTimeout(() => {
+                    document.body.style.transform = 'none';
+                    document.body.style.transition = '';
+                    document.getElementById('col-container')?.remove();
+                    whoseMsg.remove();
+                    window.scrollTo(0, 0);
+                    page.style.overflow = 'visible';
+                    document.body.style.overflow = '';
+                    document.documentElement.style.overflow = '';
+                    document.getElementById('bottom-btn-3').style.display = '';
+                }, 800);
+            });
+        });
+    });
+}
