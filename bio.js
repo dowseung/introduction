@@ -211,7 +211,7 @@ function drawGroupOutlines(clickMsg) {
             const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             linePath.setAttribute('d', linePathD);
             linePath.setAttribute('fill', 'none');
-            linePath.setAttribute('stroke', '#000');
+            linePath.setAttribute('stroke', '#C5A028');
             linePath.setAttribute('stroke-width', '1.5');
             linePath.dataset.row = rowIdx;
             svgLines.appendChild(linePath);
@@ -220,7 +220,7 @@ function drawGroupOutlines(clickMsg) {
         const boxPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         boxPath.setAttribute('d', boxPathD);
         boxPath.setAttribute('fill', '#ebebeb');
-        boxPath.setAttribute('stroke', '#000');
+        boxPath.setAttribute('stroke', '#C5A028');
         boxPath.setAttribute('stroke-width', '1.5');
         boxPath.dataset.row = rowIdx;
         svgBoxes.appendChild(boxPath);
@@ -298,7 +298,8 @@ function drawGroupOutlines(clickMsg) {
     document.body.appendChild(topBtn);
 
     topBtn.addEventListener('click', () => {
-        topBtn.style.display = 'none';
+        topBtn.remove();
+        document.getElementById('switch-btn')?.remove();
         clickMsg.style.opacity = '0';
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
@@ -370,7 +371,7 @@ function drawGroupOutlines(clickMsg) {
         document.body.appendChild(bottomBtn);
 
         bottomBtn.addEventListener('click', () => {
-            let nextViewTriggered = false;
+            bottomBtn.remove();
             document.body.style.overflow = 'hidden';
             document.documentElement.style.overflow = 'hidden';
             window.scrollTo(0, 0);
@@ -388,7 +389,7 @@ function drawGroupOutlines(clickMsg) {
                 if (clickMsg) {
                     const lines = ['DESIGNER','NAME','JOB','SCHOOL','MAJOR','ORGANIZATION','BOOK','EXHIBITION','TIME','PLACE','SPACE'];
                     clickMsg.innerHTML = lines.map(l =>
-                        `<span class="label-line" style="display:block;font-weight:100;text-align:right;">${l}</span>`
+                        `<span class="label-line" style="display:block;font-weight:100;text-align:right;pointer-events:auto;cursor:default;">${l}</span>`
                     ).join('');
                     clickMsg.style.fontSize = 'clamp(4px, 6.5vh, 6.5vw)';
                     clickMsg.style.lineHeight = '1.05';
@@ -399,10 +400,12 @@ function drawGroupOutlines(clickMsg) {
                     clickMsg.style.letterSpacing = '0';
                     clickMsg.style.overflow = 'hidden';
                     clickMsg.style.opacity = '1';
+                    clickMsg.style.pointerEvents = 'auto';
                 }
 
                 setTimeout(() => {
-                    if (!document.getElementById('bio-text') && !document.getElementById('col-list')) return;
+                    if (document.getElementById('col-list')) return;
+                    if (!document.getElementById('bio-text')) return;
                     if (svgLinesEl) svgLinesEl.style.display = 'none';
 
                     document.querySelectorAll('.bio-keyword').forEach(kw => { kw.style.visibility = 'hidden'; });
@@ -454,7 +457,6 @@ function drawGroupOutlines(clickMsg) {
                                 s.style.color = '#00FF00';
                             });
                         });
-
                         const vals = [];
                         sheetRows.slice(1).forEach(row => {
                             const cell = (row[colIdx] || '').trim();
@@ -519,10 +521,44 @@ function drawGroupOutlines(clickMsg) {
 
                     requestAnimationFrame(() => {
                         listContainer.style.opacity = '1';
-                        bottomBtn.remove();
+
+                        // label-line 각각 위에 fixed 오버레이 올려서 호버 이벤트 처리
+                        const labelOverlays = [];
+                        clickMsg.querySelectorAll('.label-line').forEach((labelEl, i) => {
+                            const targetColIdx = i + 1;
+                            const overlay = document.createElement('div');
+                            overlay.className = 'label-overlay';
+                            const rect = labelEl.getBoundingClientRect();
+                            overlay.style.cssText = `
+                                position: fixed;
+                                top: ${rect.top}px;
+                                left: ${rect.left}px;
+                                width: ${rect.width}px;
+                                height: ${rect.height}px;
+                                z-index: 5;
+                                cursor: default;
+                                pointer-events: auto;
+                            `;
+                            overlay.onmouseenter = () => {
+                                labelEl.style.color = '#FF00FF';
+                                listContainer.querySelectorAll(`div[data-col-idx="${targetColIdx}"]`).forEach(k => {
+                                    k.style.color = '#C5A028';
+                                });
+                            };
+                            overlay.onmouseleave = () => {
+                                labelEl.style.color = '#00FF00';
+                                listContainer.querySelectorAll(`div[data-col-idx="${targetColIdx}"]`).forEach(k => {
+                                    k.style.color = '';
+                                });
+                            };
+                            document.body.appendChild(overlay);
+                            labelOverlays.push(overlay);
+                        });
+                        document.getElementById('bottom-btn')?.remove();
                         document.getElementById('bottom-btn-2')?.remove();
                         document.getElementById('bottom-btn-3')?.remove();
                         document.getElementById('top-btn')?.remove();
+                        document.getElementById('switch-btn')?.remove();
 
                         const bottomBtn2 = document.createElement('div');
                         bottomBtn2.id = 'bottom-btn-2';
@@ -530,6 +566,7 @@ function drawGroupOutlines(clickMsg) {
                         document.body.appendChild(bottomBtn2);
 
                         bottomBtn2.addEventListener('click', () => {
+                            document.querySelectorAll('.label-overlay').forEach(el => el.remove());
                             bottomBtn2.remove();
                             document.body.style.overflow = 'hidden';
                             document.documentElement.style.overflow = 'hidden';
@@ -874,6 +911,7 @@ window.addEventListener('load', async () => {
                     kw.style.position = 'relative';
                     kw.style.display = 'inline';
                     kw.style.color = 'transparent';
+                    kw.style.pointerEvents = 'auto';
 
                     const input = document.createElement('span');
                     input.contentEditable = 'true';
@@ -900,32 +938,18 @@ window.addEventListener('load', async () => {
         } else {
             document.getElementById('typing-output')?.remove();
             page.style.paddingRight = '25vw';
+            // fill-blank 입력창 제거
             document.querySelectorAll('.fill-blank').forEach(el => el.remove());
-            document.querySelectorAll('.plain-text-visible').forEach(el => {
-                const txt = document.createTextNode(el.textContent);
-                el.replaceWith(txt);
-            });
-            document.querySelectorAll('.keyword-blank-wrapper').forEach(wrapper => {
-                const span = document.createElement('span');
-                span.textContent = wrapper.dataset.origText;
-                span.className = 'bio-keyword';
-                span.dataset.colIdx = wrapper.dataset.colIdx;
-                span.dataset.rowIdx = wrapper.dataset.rowIdx;
-                span.dataset.rowIdxAll = wrapper.dataset.rowIdxAll;
-                span.style.visibility = 'visible';
-                span.style.pointerEvents = 'none';
-                wrapper.replaceWith(span);
-            });
-            
+            // bio-keyword 스타일 복원
             document.querySelectorAll('.bio-keyword').forEach(kw => {
                 kw.style.color = '';
                 kw.style.position = '';
+                kw.style.display = '';
                 kw.style.visibility = 'visible';
                 kw.style.pointerEvents = 'none';
             });
             p.style.height = '';
             p.style.overflow = '';
-            document.querySelectorAll('.plain-text').forEach(el => { el.style.visibility = 'hidden'; });
 
             scrollMsg.style.opacity = '0';
             clickMsg.style.opacity = '0';
@@ -1047,6 +1071,8 @@ function showNextView() {
     document.getElementById('bottom-btn-2')?.remove();
     document.getElementById('bottom-btn-3')?.remove();
     document.getElementById('typing-output')?.remove();
+    document.getElementById('switch-btn')?.remove();
+    document.querySelectorAll('.label-overlay').forEach(el => el.remove());
 
     page.innerHTML = '';
     page.style.paddingRight = '0';
