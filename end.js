@@ -1,3 +1,19 @@
+function scrollThenDo(fn) {
+    const scrollY = window.scrollY || window.pageYOffset;
+    if (scrollY < 80) {
+        fn();
+        return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const check = setInterval(() => {
+        if ((window.scrollY || window.pageYOffset) < 10) {
+            clearInterval(check);
+            fn();
+        }
+    }, 50);
+    setTimeout(() => { clearInterval(check); fn(); }, 1000);
+}
+
 function initBannerDropdown() {
     const bannerOf = document.querySelector('#site-banner span:nth-child(2)');
     if (!bannerOf) return;
@@ -11,6 +27,7 @@ function initBannerDropdown() {
         { label: 'DESIGNER NAME JOB...' },
         { label: 'WHOSE?' },
         { label: 'DESIGNERS' },
+        { label: 'WRITE YOUR OWN' },
     ];
 
     const dropdown = document.createElement('div');
@@ -43,19 +60,24 @@ function initBannerDropdown() {
         item.addEventListener('mouseenter', () => { item.style.textDecoration = 'underline'; });
         item.addEventListener('mouseleave', () => { item.style.textDecoration = 'none'; });
         item.addEventListener('click', () => {
-            if (pg.label === 'READ SCROLL CHANGE') {
-                window.location.href = 'bio.html';
-            } else if (pg.label === 'FILL IN THE BLANK') {
-                window.location.href = 'bio.html#fillinblank';
-            } else if (pg.label === 'HOVER AND CLICK') {
-                window.location.href = 'bio.html#hoverandclick';
-            } else if (pg.label === 'DESIGNER NAME JOB...') {
-                window.location.href = 'bio.html#collist';
-            } else if (pg.label === 'WHOSE?') {
-                window.location.href = 'bio.html#whose';
-            } else if (pg.label === 'DESIGNERS') {
-                window.location.href = 'bio.html#names';
-            }
+            dropdown.style.display = 'none';
+            scrollThenDo(() => {
+                if (pg.label === 'READ SCROLL CHANGE') {
+                    window.location.href = 'bio.html';
+                } else if (pg.label === 'FILL IN THE BLANK') {
+                    window.location.href = 'bio.html#fillinblank';
+                } else if (pg.label === 'HOVER AND CLICK') {
+                    window.location.href = 'bio.html#hoverandclick';
+                } else if (pg.label === 'DESIGNER NAME JOB...') {
+                    window.location.href = 'bio.html#collist';
+                } else if (pg.label === 'WHOSE?') {
+                    window.location.href = 'bio.html#whose';
+                } else if (pg.label === 'DESIGNERS') {
+                    window.location.href = 'bio.html#names';
+                } else if (pg.label === 'WRITE YOUR OWN') {
+                    window.location.href = 'end.html';
+                }
+            });
         });
         dropdown.appendChild(item);
     });
@@ -179,6 +201,11 @@ window.addEventListener('load', async () => {
         }
     });
     document.body.appendChild(shareBtn);
+
+    // 배너 pointer-events 활성화 및 드롭다운 초기화
+    const siteBanner = document.getElementById('site-banner');
+    if (siteBanner) siteBanner.style.pointerEvents = 'auto';
+    initBannerDropdown();
 });
 
 window.addEventListener('resize', () => {

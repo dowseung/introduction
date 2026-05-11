@@ -3,6 +3,7 @@ const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBg
 let sheetRows = [];
 let activeMenu = null;
 let activeSpan = null;
+let currentStage = 'read'; // 'read' | 'fill' | 'hover' | 'collist' | 'whose' | 'names'
 
 const arrowSVG = `<svg viewBox="0 0 110 60" width="15vw" height="7.5vw" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;">
     <line x1="0" y1="30" x2="95" y2="30" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
@@ -341,6 +342,12 @@ function drawGroupOutlines(clickMsg) {
     topBtn.innerHTML = arrowSVG;
     document.body.appendChild(topBtn);
 
+    // 배너 pointer-events 활성화 및 드롭다운 재초기화
+    const siteBannerOutline = document.getElementById('site-banner');
+    if (siteBannerOutline) siteBannerOutline.style.pointerEvents = 'auto';
+    currentStage = 'collist';
+    initBannerDropdown();
+
     topBtn.addEventListener('click', () => {
         topBtn.style.display = 'none';
         clickMsg.style.opacity = '0';
@@ -414,7 +421,6 @@ function drawGroupOutlines(clickMsg) {
         document.body.appendChild(bottomBtn);
 
         bottomBtn.addEventListener('click', () => {
-            let nextViewTriggered = false;
             document.body.style.overflow = 'hidden';
             document.documentElement.style.overflow = 'hidden';
             window.scrollTo(0, 0);
@@ -577,6 +583,12 @@ function drawGroupOutlines(clickMsg) {
                         document.getElementById('bottom-btn-2')?.remove();
                         document.getElementById('bottom-btn-3')?.remove();
                         document.getElementById('top-btn')?.remove();
+
+                        // 배너 pointer-events 활성화 및 드롭다운 재초기화
+                        const siteBannerDraw = document.getElementById('site-banner');
+                        if (siteBannerDraw) siteBannerDraw.style.pointerEvents = 'auto';
+                        currentStage = 'collist';
+                        initBannerDropdown();
 
                         const bottomBtn2 = document.createElement('div');
                         bottomBtn2.id = 'bottom-btn-2';
@@ -889,6 +901,12 @@ window.addEventListener('load', async () => {
                 clickMsg.style.paddingLeft = '55px';
                 clickMsg.style.opacity = '1';
                 clickMsg.style.textAlign = 'left';
+
+                // 배너 pointer-events 활성화 및 드롭다운 재초기화
+                const siteBannerFill = document.getElementById('site-banner');
+                if (siteBannerFill) siteBannerFill.style.pointerEvents = 'auto';
+                currentStage = 'fill';
+                initBannerDropdown();
             }, 600);
 
             document.querySelectorAll('.bio-keyword').forEach(kw => {
@@ -1007,6 +1025,12 @@ window.addEventListener('load', async () => {
                 clickMsg.style.letterSpacing = '-0.02em';
                 clickMsg.style.overflow = 'visible';
                 clickMsg.style.opacity = '1';
+
+                // 배너 pointer-events 활성화 및 드롭다운 재초기화
+                const siteBannerHover = document.getElementById('site-banner');
+                if (siteBannerHover) siteBannerHover.style.pointerEvents = 'auto';
+                currentStage = 'hover';
+                initBannerDropdown();
             }, 600);
 
             document.querySelectorAll('.bio-keyword').forEach(kw => { kw.style.pointerEvents = 'none'; });
@@ -1084,6 +1108,9 @@ window.addEventListener('load', async () => {
         if (activeMenu && !activeMenu.contains(e.target) && e.target !== activeSpan) closeMenu();
     });
 
+    const siteBanner = document.getElementById('site-banner');
+    if (siteBanner) siteBanner.style.pointerEvents = 'auto';
+    currentStage = 'read';
     initBannerDropdown();
 
     // 해시 진입 처리
@@ -1112,29 +1139,26 @@ window.addEventListener('load', async () => {
     } else if (_hash === '#collist') {
         setTimeout(() => {
             history.replaceState(null, '', window.location.pathname);
-            const sw = document.getElementById('switch-btn');
-            if (sw) {
-                sw.click();
-                setTimeout(() => {
-                    window.dispatchEvent(new Event('scroll'));
-                }, 700);
-            }
+            goToColListDirect();
         }, 1400);
     } else if (_hash === '#whose') {
         setTimeout(() => {
             history.replaceState(null, '', window.location.pathname);
-            const sw = document.getElementById('switch-btn');
-            if (sw) {
-                sw.click();
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+            const p2 = document.getElementById('bio-page');
+            if (p2) { p2.style.height = '100vh'; p2.style.overflow = 'hidden'; }
+            window.scrollTo(0, 0);
+            requestAnimationFrame(() => { requestAnimationFrame(() => {
+                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
+                document.body.style.transform = 'translateY(-100%)';
                 setTimeout(() => {
-                    window.dispatchEvent(new Event('scroll'));
-                    setTimeout(() => {
-                        const bb = document.getElementById('bottom-btn');
-                        if (bb) bb.click();
-                        else showNextView();
-                    }, 800);
-                }, 700);
-            }
+                    document.body.style.transform = 'none';
+                    document.body.style.transition = '';
+                    window.scrollTo(0, 0);
+                    showNextView();
+                }, 800);
+            }); });
         }, 1400);
     }
 
@@ -1149,11 +1173,32 @@ window.addEventListener('load', async () => {
     }
 });
 
+function scrollThenDo(fn) {
+    const scrollY = window.scrollY || window.pageYOffset;
+    if (scrollY < 80) {
+        fn();
+        return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const check = setInterval(() => {
+        if ((window.scrollY || window.pageYOffset) < 10) {
+            clearInterval(check);
+            fn();
+        }
+    }, 50);
+    // 최대 1초 후 강제 실행
+    setTimeout(() => { clearInterval(check); fn(); }, 1000);
+}
+
 function initBannerDropdown() {
     const bannerOf = document.querySelector('#site-banner span:nth-child(2)');
     if (!bannerOf) return;
 
     document.getElementById('banner-dropdown')?.remove();
+    // 기존 이벤트 리스너 제거를 위해 클론으로 교체
+    const freshBannerOf = bannerOf.cloneNode(true);
+    bannerOf.parentNode.replaceChild(freshBannerOf, bannerOf);
+    const bannerOfEl = freshBannerOf;
 
     const pages = [
         { label: 'READ SCROLL CHANGE' },
@@ -1162,6 +1207,7 @@ function initBannerDropdown() {
         { label: 'DESIGNER NAME JOB...' },
         { label: 'WHOSE?' },
         { label: 'DESIGNERS' },
+        { label: 'WRITE YOUR OWN' },
     ];
 
     const dropdown = document.createElement('div');
@@ -1195,67 +1241,109 @@ function initBannerDropdown() {
         item.addEventListener('mouseleave', () => { item.style.textDecoration = 'none'; });
         item.addEventListener('click', () => {
             dropdown.style.display = 'none';
-            bannerOf.style.color = '';
+            bannerOfEl.style.color = '';
 
-            if (pg.label === 'READ SCROLL CHANGE') {
-                window.location.href = 'bio.html';
-            } else if (pg.label === 'FILL IN THE BLANK') {
-                if (window.location.pathname.includes('bio')) {
-                    const sw = document.getElementById('switch-btn');
-                    if (sw && !sw.classList.contains('on')) sw.click();
-                } else {
-                    window.location.href = 'bio.html#fillinblank';
+            scrollThenDo(() => {
+                if (pg.label === 'READ SCROLL CHANGE') {
+                    if (currentStage === 'read') return;
+                    window.location.href = 'bio.html';
+
+                } else if (pg.label === 'FILL IN THE BLANK') {
+                    if (currentStage === 'fill') return;
+                    if (currentStage === 'read') {
+                        const sw = document.getElementById('switch-btn');
+                        if (sw) sw.click();
+                    } else {
+                        window.location.href = 'bio.html#fillinblank';
+                    }
+
+                } else if (pg.label === 'HOVER AND CLICK') {
+                    if (currentStage === 'hover' || currentStage === 'collist') return;
+                    if (currentStage === 'read') {
+                        const sw = document.getElementById('switch-btn');
+                        if (sw) {
+                            sw.click();
+                            setTimeout(() => { sw.click(); }, 700);
+                        }
+                    } else if (currentStage === 'fill') {
+                        const sw = document.getElementById('switch-btn');
+                        if (sw) sw.click();
+                    } else {
+                        window.location.href = 'bio.html#hoverandclick';
+                    }
+
+                } else if (pg.label === 'DESIGNER NAME JOB...') {
+                    if (currentStage === 'collist') return;
+                    if (currentStage === 'hover') {
+                        // enterMergeMode의 bottom-btn이 있으면 클릭, 없으면 direct
+                        const bb = document.getElementById('bottom-btn');
+                        if (bb) bb.click();
+                        else goToColListDirect();
+                    } else if (['read', 'fill', 'whose', 'names'].includes(currentStage)) {
+                        goToColListDirect();
+                    } else {
+                        window.location.href = 'bio.html#collist';
+                    }
+
+                } else if (pg.label === 'WHOSE?') {
+                    if (currentStage === 'whose') return;
+                    if (['read', 'fill', 'hover', 'collist', 'names'].includes(currentStage)) {
+                        const bb2 = document.getElementById('bottom-btn-2');
+                        if (bb2) {
+                            bb2.click();
+                        } else {
+                            document.body.style.overflow = 'hidden';
+                            document.documentElement.style.overflow = 'hidden';
+                            const p2 = document.getElementById('bio-page');
+                            if (p2) { p2.style.height = '100vh'; p2.style.overflow = 'hidden'; }
+                            window.scrollTo(0, 0);
+                            requestAnimationFrame(() => { requestAnimationFrame(() => {
+                                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
+                                document.body.style.transform = 'translateY(-100%)';
+                                setTimeout(() => {
+                                    document.body.style.transform = 'none';
+                                    document.body.style.transition = '';
+                                    window.scrollTo(0, 0);
+                                    showNextView();
+                                }, 800);
+                            }); });
+                        }
+                    } else {
+                        window.location.href = 'bio.html#whose';
+                    }
+
+                } else if (pg.label === 'DESIGNERS') {
+                    if (currentStage === 'names') return;
+                    if (['read', 'fill', 'hover', 'collist', 'whose'].includes(currentStage)) {
+                        goToNamesPage();
+                    } else {
+                        window.location.href = 'bio.html#names';
+                    }
+
+                } else if (pg.label === 'WRITE YOUR OWN') {
+                    window.location.href = 'end.html';
                 }
-            } else if (pg.label === 'HOVER AND CLICK') {
-                if (window.location.pathname.includes('bio')) {
-                    const sw = document.getElementById('switch-btn');
-                    if (sw && sw.style.display !== 'none') sw.click();
-                } else {
-                    window.location.href = 'bio.html#hoverandclick';
-                }
-            } else if (pg.label === 'DESIGNER NAME JOB...') {
-                const bb = document.getElementById('bottom-btn');
-                if (bb) {
-                    bb.click();
-                } else {
-                    window.location.href = 'bio.html#collist';
-                }
-            } else if (pg.label === 'WHOSE?') {
-                const bb2 = document.getElementById('bottom-btn-2');
-                if (bb2) {
-                    bb2.click();
-                } else if (window.location.pathname.includes('bio')) {
-                    showNextView();
-                } else {
-                    window.location.href = 'bio.html#whose';
-                }
-            } else if (pg.label === 'DESIGNERS') {
-                if (window.location.pathname.includes('bio')) {
-                    goToNamesPage();
-                } else {
-                    window.location.href = 'bio.html#names';
-                }
-            }
+            });
         });
         dropdown.appendChild(item);
     });
 
     document.body.appendChild(dropdown);
 
-    bannerOf.style.cursor = 'pointer';
-    bannerOf.style.transition = 'color 0.2s ease';
-    bannerOf.style.pointerEvents = 'auto';
+    bannerOfEl.style.cursor = 'pointer';
+    bannerOfEl.style.transition = 'color 0.2s ease';
+    bannerOfEl.style.pointerEvents = 'auto';
 
     let hideTimer = null;
 
-    bannerOf.addEventListener('mouseenter', () => {
+    bannerOfEl.addEventListener('mouseenter', () => {
         clearTimeout(hideTimer);
-        bannerOf.style.color = '#FF00FF';
+        bannerOfEl.style.color = '#FF00FF';
         dropdown.style.display = 'flex';
     });
-    bannerOf.addEventListener('mouseleave', () => {
+    bannerOfEl.addEventListener('mouseleave', () => {
         hideTimer = setTimeout(() => {
-            bannerOf.style.color = '';
+            bannerOfEl.style.color = '';
             dropdown.style.display = 'none';
         }, 150);
     });
@@ -1264,9 +1352,203 @@ function initBannerDropdown() {
     });
     dropdown.addEventListener('mouseleave', () => {
         hideTimer = setTimeout(() => {
-            bannerOf.style.color = '';
+            bannerOfEl.style.color = '';
             dropdown.style.display = 'none';
         }, 150);
+    });
+}
+
+function goToColListDirect() {
+    const page = document.getElementById('bio-page');
+    if (!page) return;
+
+    document.getElementById('click-msg')?.remove();
+    document.getElementById('scroll-msg')?.remove();
+    document.getElementById('connect-svg-lines')?.remove();
+    document.getElementById('connect-svg-boxes')?.remove();
+    document.getElementById('top-btn')?.remove();
+    document.getElementById('bottom-btn')?.remove();
+    document.getElementById('bottom-btn-2')?.remove();
+    document.getElementById('bottom-btn-3')?.remove();
+    document.getElementById('typing-output')?.remove();
+    document.getElementById('switch-btn')?.remove();
+    document.getElementById('a-text-panel')?.remove();
+    document.getElementById('bio-text')?.remove();
+    document.getElementById('circle-col')?.remove();
+    document.getElementById('text-outline-svg')?.remove();
+    document.getElementById('col-list')?.remove();
+    document.getElementById('whose-msg')?.remove();
+    document.getElementById('whose-graphic')?.remove();
+    document.getElementById('whose-action-panel')?.remove();
+
+    const labels = ['DESIGNER','NAME','JOB','SCHOOL','MAJOR','ORGANIZATION','BOOK','EXHIBITION','TIME','PLACE','SPACE'];
+
+    // clickMsg 역할의 라벨 오버레이
+    const labelOverlay = document.createElement('div');
+    labelOverlay.id = 'click-msg';
+    labelOverlay.style.cssText = `
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: flex-start;
+        font-weight: 100;
+        font-family: "AvantGarde", sans-serif;
+        color: #00FF00;
+        pointer-events: none;
+        z-index: 0;
+        font-size: clamp(4px, 6.5vh, 6.5vw);
+        line-height: 1.05;
+        padding-top: 60px;
+        padding-right: 55px;
+        letter-spacing: 0;
+        overflow: hidden;
+        opacity: 1;
+    `;
+    labelOverlay.innerHTML = labels.map(l =>
+        `<span class="label-line" style="display:block;font-weight:100;text-align:right;">${l}</span>`
+    ).join('');
+    document.body.appendChild(labelOverlay);
+
+    const listContainer = document.createElement('div');
+    listContainer.id = 'col-list';
+    listContainer.style.cssText = `
+        position: relative;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        flex-wrap: nowrap;
+        padding: 60px 25vw 40px 2vw;
+        box-sizing: border-box;
+        gap: 1vw;
+        z-index: 3;
+        overflow-x: hidden;
+    `;
+
+    for (let colIdx = 1; colIdx <= 11; colIdx++) {
+        const col = document.createElement('div');
+        const labelIndex = colIdx - 1;
+        col.style.cssText = `
+            flex: 1 1 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.3em;
+            ${colIdx > 1 ? 'border-left: 1px solid #C5A028;' : ''}
+            padding-left: ${colIdx > 1 ? '0.5vw' : '0'};
+        `;
+        col.addEventListener('mouseenter', () => {
+            labelOverlay.querySelectorAll('.label-line').forEach((s, i) => {
+                s.style.color = i === labelIndex ? '#C5A028' : '#00FF00';
+            });
+        });
+        col.addEventListener('mouseleave', () => {
+            labelOverlay.querySelectorAll('.label-line').forEach(s => { s.style.color = '#00FF00'; });
+        });
+
+        const vals = [];
+        sheetRows.slice(1).forEach(row => {
+            const cell = (row[colIdx] || '').trim();
+            cell.split(/\r?\n/).forEach(v => {
+                const val = v.trim();
+                if (val && !vals.includes(val)) vals.push(val);
+            });
+        });
+
+        vals.forEach(val => {
+            const item = document.createElement('div');
+            item.textContent = val;
+            sheetRows.slice(1).forEach((row, rowIdx) => {
+                const cell = (row[colIdx] || '').trim();
+                cell.split(/\r?\n/).forEach(v => {
+                    if (v.trim() === val) { item.dataset.rowIdx = rowIdx; item.dataset.colIdx = colIdx; }
+                });
+            });
+            item.style.cssText = `
+                font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
+                font-size: clamp(6px, 1vw, 14px);
+                font-weight: 900;
+                line-height: 1.5;
+                word-break: keep-all;
+                overflow-wrap: normal;
+                hyphens: none;
+                text-align: left;
+                display: block;
+                width: 100%;
+                overflow: hidden;
+                cursor: pointer;
+            `;
+            item.addEventListener('mouseenter', () => {
+                const hoverRow = item.dataset.rowIdx;
+                if (!hoverRow) return;
+                document.querySelectorAll('#col-list div[data-row-idx]').forEach(k => {
+                    if (k.dataset.rowIdx === hoverRow) {
+                        k.style.boxShadow = `0 0 0 1.5px #000`;
+                        k.style.borderRadius = `${Math.min(k.getBoundingClientRect().height / 2, 8)}px`;
+                    }
+                });
+            });
+            item.addEventListener('mouseleave', () => {
+                document.querySelectorAll('#col-list div[data-row-idx]').forEach(k => {
+                    k.style.boxShadow = 'none'; k.style.borderRadius = '0';
+                });
+            });
+            col.appendChild(item);
+        });
+        listContainer.appendChild(col);
+    }
+
+    page.innerHTML = '';
+    page.style.paddingTop = '0';
+    page.style.paddingBottom = '0';
+    page.style.paddingLeft = '0';
+    page.style.paddingRight = '0';
+    page.style.height = 'auto';
+    page.style.minHeight = '0';
+    page.style.overflow = 'visible';
+    page.style.transform = 'none';
+    page.style.transition = '';
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+    window.scrollTo(0, 0);
+
+    page.appendChild(listContainer);
+
+    // 배너 pointer-events 활성화 및 드롭다운 재초기화
+    const siteBannerCol = document.getElementById('site-banner');
+    if (siteBannerCol) siteBannerCol.style.pointerEvents = 'auto';
+    currentStage = 'collist';
+    initBannerDropdown();
+
+    const bottomBtn2 = document.createElement('div');
+    bottomBtn2.id = 'bottom-btn-2';
+    bottomBtn2.innerHTML = arrowSVG;
+    document.body.appendChild(bottomBtn2);
+
+    bottomBtn2.addEventListener('click', () => {
+        bottomBtn2.remove();
+        labelOverlay.remove();
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        page.style.height = '100vh';
+        page.style.overflow = 'hidden';
+        window.scrollTo(0, 0);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
+                document.body.style.transform = 'translateY(-100%)';
+                setTimeout(() => {
+                    document.body.style.transform = 'none';
+                    document.body.style.transition = '';
+                    window.scrollTo(0, 0);
+                    showNextView();
+                }, 800);
+            });
+        });
     });
 }
 
@@ -1274,7 +1556,7 @@ function goToNamesPage() {
     const page = document.getElementById('bio-page');
     if (!page) return;
 
-    // 현재 단계 요소들 모두 정리
+    // 현재 단계 요소들 모두 정리 (whoseMsg 포함 - fixed로 붙어있는 모든 배경 텍스트)
     document.getElementById('click-msg')?.remove();
     document.getElementById('scroll-msg')?.remove();
     document.getElementById('col-list')?.remove();
@@ -1292,6 +1574,7 @@ function goToNamesPage() {
     document.getElementById('circle-col')?.remove();
     document.getElementById('text-outline-svg')?.remove();
     document.getElementById('whose-action-panel')?.remove();
+    document.getElementById('whose-msg')?.remove();
 
     const bColVals = [];
     sheetRows.slice(1).forEach(row => {
@@ -1344,12 +1627,22 @@ function goToNamesPage() {
         listWrap.appendChild(item);
     });
 
+    // fill-blank 인풋 잔여물 정리
+    document.querySelectorAll('.fill-blank').forEach(el => el.remove());
+    document.getElementById('typing-output')?.remove();
+
     const arrowEl = document.createElement('div');
     arrowEl.style.cssText = `display: flex; justify-content: center; padding: 10vh 0 15vh; cursor: pointer;`;
     arrowEl.innerHTML = arrowSVG;
     arrowEl.addEventListener('click', () => { window.location.href = 'end.html'; });
     listWrap.appendChild(arrowEl);
     page.appendChild(listWrap);
+
+    // 배너 pointer-events 활성화 및 드롭다운 재초기화
+    const siteBanner = document.getElementById('site-banner');
+    if (siteBanner) siteBanner.style.pointerEvents = 'auto';
+    currentStage = 'names';
+    initBannerDropdown();
 }
 
 function showNextView() {
@@ -1367,6 +1660,7 @@ function showNextView() {
     document.getElementById('typing-output')?.remove();
     document.getElementById('switch-btn')?.remove();
     document.getElementById('whose-graphic')?.remove();
+    document.getElementById('whose-msg')?.remove();
     document.getElementById('a-text-panel')?.remove();
     document.querySelectorAll('.label-overlay').forEach(el => el.remove());
 
@@ -1382,6 +1676,7 @@ function showNextView() {
     window.scrollTo(0, 0);
 
     const whoseMsg = document.createElement('div');
+    whoseMsg.id = 'whose-msg';
     whoseMsg.style.cssText = `
         position: fixed;
         top: 0; left: 0;
@@ -1394,7 +1689,7 @@ function showNextView() {
         color: #00FF00;
         pointer-events: none;
         z-index: 0;
-        opacity: 1;
+        opacity: 0;
         transition: opacity 0.5s ease;
     `;
     whoseMsg.innerHTML = `
@@ -1402,6 +1697,7 @@ function showNextView() {
         <span style="display:block;font-size:min(18vw, 45vh);line-height:1;letter-spacing:0.05em;white-space:nowrap;color:#00FF00;">WHOSE?</span>
     </div>`;
     document.body.appendChild(whoseMsg);
+    requestAnimationFrame(() => { requestAnimationFrame(() => { whoseMsg.style.opacity = '1'; }); });
 
     const whoseGraphic = document.createElement('div');
     whoseGraphic.id = 'whose-graphic';
@@ -1607,6 +1903,12 @@ function showNextView() {
         resizeTimer = setTimeout(() => { renderGrid(); }, 200);
     });
 
+    // 배너 pointer-events 활성화 및 드롭다운 재초기화
+    const siteBannerWhose = document.getElementById('site-banner');
+    if (siteBannerWhose) siteBannerWhose.style.pointerEvents = 'auto';
+    currentStage = 'whose';
+    initBannerDropdown();
+
     const whoseBtn = document.createElement('div');
     whoseBtn.id = 'bottom-btn-2';
     whoseBtn.style.cssText = `position: fixed; top: 30px; right: 55px; cursor: pointer; z-index: 11; line-height: 0;`;
@@ -1633,70 +1935,7 @@ function showNextView() {
                     document.getElementById('whose-graphic')?.remove();
                     whoseMsg.remove();
                     window.scrollTo(0, 0);
-
-                    // B열 텍스트 수집 후 랜덤 셔플
-                    const bColVals = [];
-                    sheetRows.slice(1).forEach(row => {
-                        const val = (row[1] || '').trim();
-                        if (val) bColVals.push(val);
-                    });
-                    for (let i = bColVals.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [bColVals[i], bColVals[j]] = [bColVals[j], bColVals[i]];
-                    }
-
-                    page.innerHTML = '';
-                    page.style.paddingRight = '0';
-                    page.style.paddingTop = '0';
-                    page.style.paddingLeft = '0';
-                    page.style.paddingBottom = '0';
-                    page.style.height = 'auto';
-                    page.style.minHeight = '100vh';
-                    page.style.overflow = 'visible';
-                    document.body.style.overflow = '';
-                    document.documentElement.style.overflow = '';
-
-                    const listWrap = document.createElement('div');
-                    listWrap.style.cssText = `
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: flex-start;
-                        width: 100%;
-                        padding: 10vh 55px;
-                        box-sizing: border-box;
-                        gap: 5vh;
-                    `;
-
-                    bColVals.forEach(val => {
-                        const item = document.createElement('div');
-                        item.textContent = val;
-                        item.style.cssText = `
-                            font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
-                            font-size: clamp(48px, 10vw, 160px);
-                            font-weight: 900;
-                            line-height: 1;
-                            text-align: center;
-                            word-break: keep-all;
-                            width: 100%;
-                        `;
-                        listWrap.appendChild(item);
-                    });
-
-                    // 우측 화살표 버튼
-                    const nextBtn = document.createElement('div');
-                    nextBtn.style.cssText = `
-                        display: flex;
-                        justify-content: center;
-                        padding: 10vh 0 15vh;
-                        cursor: pointer;
-                    `;
-                    nextBtn.innerHTML = arrowSVG;
-                    nextBtn.addEventListener('click', () => {
-                        window.location.href = 'end.html';
-                    });
-                    listWrap.appendChild(nextBtn);
-                    page.appendChild(listWrap);
+                    goToNamesPage();
 
                 }, 800);
             });
