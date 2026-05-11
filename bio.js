@@ -211,7 +211,7 @@ function drawGroupOutlines(clickMsg) {
             const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             linePath.setAttribute('d', linePathD);
             linePath.setAttribute('fill', 'none');
-            linePath.setAttribute('stroke', '#C5A028');
+            linePath.setAttribute('stroke', '#000');
             linePath.setAttribute('stroke-width', '1.5');
             linePath.dataset.row = rowIdx;
             svgLines.appendChild(linePath);
@@ -220,7 +220,7 @@ function drawGroupOutlines(clickMsg) {
         const boxPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         boxPath.setAttribute('d', boxPathD);
         boxPath.setAttribute('fill', '#ebebeb');
-        boxPath.setAttribute('stroke', '#C5A028');
+        boxPath.setAttribute('stroke', '#000');
         boxPath.setAttribute('stroke-width', '1.5');
         boxPath.dataset.row = rowIdx;
         svgBoxes.appendChild(boxPath);
@@ -298,8 +298,7 @@ function drawGroupOutlines(clickMsg) {
     document.body.appendChild(topBtn);
 
     topBtn.addEventListener('click', () => {
-        topBtn.remove();
-        document.getElementById('switch-btn')?.remove();
+        topBtn.style.display = 'none';
         clickMsg.style.opacity = '0';
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
@@ -371,7 +370,7 @@ function drawGroupOutlines(clickMsg) {
         document.body.appendChild(bottomBtn);
 
         bottomBtn.addEventListener('click', () => {
-            bottomBtn.remove();
+            let nextViewTriggered = false;
             document.body.style.overflow = 'hidden';
             document.documentElement.style.overflow = 'hidden';
             window.scrollTo(0, 0);
@@ -389,7 +388,7 @@ function drawGroupOutlines(clickMsg) {
                 if (clickMsg) {
                     const lines = ['DESIGNER','NAME','JOB','SCHOOL','MAJOR','ORGANIZATION','BOOK','EXHIBITION','TIME','PLACE','SPACE'];
                     clickMsg.innerHTML = lines.map(l =>
-                        `<span class="label-line" style="display:block;font-weight:100;text-align:right;pointer-events:auto;cursor:default;">${l}</span>`
+                        `<span class="label-line" style="display:block;font-weight:100;text-align:right;">${l}</span>`
                     ).join('');
                     clickMsg.style.fontSize = 'clamp(4px, 6.5vh, 6.5vw)';
                     clickMsg.style.lineHeight = '1.05';
@@ -400,12 +399,10 @@ function drawGroupOutlines(clickMsg) {
                     clickMsg.style.letterSpacing = '0';
                     clickMsg.style.overflow = 'hidden';
                     clickMsg.style.opacity = '1';
-                    clickMsg.style.pointerEvents = 'auto';
                 }
 
                 setTimeout(() => {
-                    if (document.getElementById('col-list')) return;
-                    if (!document.getElementById('bio-text')) return;
+                    if (!document.getElementById('bio-text') && !document.getElementById('col-list')) return;
                     if (svgLinesEl) svgLinesEl.style.display = 'none';
 
                     document.querySelectorAll('.bio-keyword').forEach(kw => { kw.style.visibility = 'hidden'; });
@@ -457,6 +454,7 @@ function drawGroupOutlines(clickMsg) {
                                 s.style.color = '#00FF00';
                             });
                         });
+
                         const vals = [];
                         sheetRows.slice(1).forEach(row => {
                             const cell = (row[colIdx] || '').trim();
@@ -521,44 +519,10 @@ function drawGroupOutlines(clickMsg) {
 
                     requestAnimationFrame(() => {
                         listContainer.style.opacity = '1';
-
-                        // label-line 각각 위에 fixed 오버레이 올려서 호버 이벤트 처리
-                        const labelOverlays = [];
-                        clickMsg.querySelectorAll('.label-line').forEach((labelEl, i) => {
-                            const targetColIdx = i + 1;
-                            const overlay = document.createElement('div');
-                            overlay.className = 'label-overlay';
-                            const rect = labelEl.getBoundingClientRect();
-                            overlay.style.cssText = `
-                                position: fixed;
-                                top: ${rect.top}px;
-                                left: ${rect.left}px;
-                                width: ${rect.width}px;
-                                height: ${rect.height}px;
-                                z-index: 5;
-                                cursor: default;
-                                pointer-events: auto;
-                            `;
-                            overlay.onmouseenter = () => {
-                                labelEl.style.color = '#FF00FF';
-                                listContainer.querySelectorAll(`div[data-col-idx="${targetColIdx}"]`).forEach(k => {
-                                    k.style.color = '#C5A028';
-                                });
-                            };
-                            overlay.onmouseleave = () => {
-                                labelEl.style.color = '#00FF00';
-                                listContainer.querySelectorAll(`div[data-col-idx="${targetColIdx}"]`).forEach(k => {
-                                    k.style.color = '';
-                                });
-                            };
-                            document.body.appendChild(overlay);
-                            labelOverlays.push(overlay);
-                        });
-                        document.getElementById('bottom-btn')?.remove();
+                        bottomBtn.remove();
                         document.getElementById('bottom-btn-2')?.remove();
                         document.getElementById('bottom-btn-3')?.remove();
                         document.getElementById('top-btn')?.remove();
-                        document.getElementById('switch-btn')?.remove();
 
                         const bottomBtn2 = document.createElement('div');
                         bottomBtn2.id = 'bottom-btn-2';
@@ -566,7 +530,6 @@ function drawGroupOutlines(clickMsg) {
                         document.body.appendChild(bottomBtn2);
 
                         bottomBtn2.addEventListener('click', () => {
-                            document.querySelectorAll('.label-overlay').forEach(el => el.remove());
                             bottomBtn2.remove();
                             document.body.style.overflow = 'hidden';
                             document.documentElement.style.overflow = 'hidden';
@@ -911,7 +874,6 @@ window.addEventListener('load', async () => {
                     kw.style.position = 'relative';
                     kw.style.display = 'inline';
                     kw.style.color = 'transparent';
-                    kw.style.pointerEvents = 'auto';
 
                     const input = document.createElement('span');
                     input.contentEditable = 'true';
@@ -938,18 +900,32 @@ window.addEventListener('load', async () => {
         } else {
             document.getElementById('typing-output')?.remove();
             page.style.paddingRight = '25vw';
-            // fill-blank 입력창 제거
             document.querySelectorAll('.fill-blank').forEach(el => el.remove());
-            // bio-keyword 스타일 복원
+            document.querySelectorAll('.plain-text-visible').forEach(el => {
+                const txt = document.createTextNode(el.textContent);
+                el.replaceWith(txt);
+            });
+            document.querySelectorAll('.keyword-blank-wrapper').forEach(wrapper => {
+                const span = document.createElement('span');
+                span.textContent = wrapper.dataset.origText;
+                span.className = 'bio-keyword';
+                span.dataset.colIdx = wrapper.dataset.colIdx;
+                span.dataset.rowIdx = wrapper.dataset.rowIdx;
+                span.dataset.rowIdxAll = wrapper.dataset.rowIdxAll;
+                span.style.visibility = 'visible';
+                span.style.pointerEvents = 'none';
+                wrapper.replaceWith(span);
+            });
+            
             document.querySelectorAll('.bio-keyword').forEach(kw => {
                 kw.style.color = '';
                 kw.style.position = '';
-                kw.style.display = '';
                 kw.style.visibility = 'visible';
                 kw.style.pointerEvents = 'none';
             });
             p.style.height = '';
             p.style.overflow = '';
+            document.querySelectorAll('.plain-text').forEach(el => { el.style.visibility = 'hidden'; });
 
             scrollMsg.style.opacity = '0';
             clickMsg.style.opacity = '0';
@@ -980,6 +956,7 @@ window.addEventListener('load', async () => {
                 clearTimeout(scrollTimer);
                 scrollTimer = setTimeout(() => {
                     window.removeEventListener('scroll', onScroll);
+                    if (!document.getElementById('bio-text')) return;
                     page.style.transform = 'none';
                     page.style.transition = '';
                     page.style.paddingRight = '25vw';
@@ -990,6 +967,7 @@ window.addEventListener('load', async () => {
             };
             window.addEventListener('scroll', onScroll);
             if (window.scrollY === 0) {
+                if (!document.getElementById('bio-text')) return;
                 page.style.transform = 'none';
                 page.style.transition = '';
                 page.style.paddingRight = '25vw';
@@ -1072,6 +1050,7 @@ function showNextView() {
     document.getElementById('bottom-btn-3')?.remove();
     document.getElementById('typing-output')?.remove();
     document.getElementById('switch-btn')?.remove();
+    document.getElementById('whose-graphic')?.remove();
     document.querySelectorAll('.label-overlay').forEach(el => el.remove());
 
     page.innerHTML = '';
@@ -1106,6 +1085,12 @@ function showNextView() {
         <span style="display:block;font-size:min(18vw, 45vh);line-height:1;letter-spacing:0.05em;white-space:nowrap;color:#00FF00;">WHOSE?</span>
     </div>`;
     document.body.appendChild(whoseMsg);
+
+    const whoseGraphic = document.createElement('div');
+    whoseGraphic.id = 'whose-graphic';
+    whoseGraphic.style.cssText = `position: fixed; bottom: 0; left: 0; width: 40vw; pointer-events: none; z-index: 0;`;
+    whoseGraphic.innerHTML = `<svg id="_레이어_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 958.64 740.72"><defs><style>.cls-1{fill:none;stroke:#f0f;stroke-miterlimit:10;stroke-width:10px;}.cls-2{fill:url(#_무제_그라디언트_3);}.cls-3{fill:url(#_무제_그라디언트_3-2);}</style><linearGradient id="_무제_그라디언트_3" x1="-52.75" y1="523.63" x2="-52.75" y2="1.36" gradientTransform="translate(539 738.23) scale(1 -1)" gradientUnits="userSpaceOnUse"><stop offset=".33" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#f0f"/></linearGradient><linearGradient id="_무제_그라디언트_3-2" y1="863.8" y2="341.52" xlink:href="#_무제_그라디언트_3"/></defs><path class="cls-2" d="M486.25,736.87L13.86,345.16h944.77l-472.39,391.7Z"/><polyline class="cls-1" points="486.25 345.16 13.86 345.16 486.25 736.87"/><path class="cls-3" d="M486.25,396.7L13.86,5h944.77s-472.39,391.7-472.39,391.7Z"/><polyline class="cls-1" points="486.25 5 13.86 5 486.25 396.7"/></svg>`;
+    document.body.appendChild(whoseGraphic);
 
     const textPairs = sheetRows.slice(1)
         .map(row => ({ a: (row[0] || '').trim(), b: (row[1] || '').trim() }))
@@ -1190,12 +1175,12 @@ function showNextView() {
 
                     const copyBtn = document.createElement('div');
                     copyBtn.style.cssText = `position: absolute; top: 18px; left: 50%; transform: translateX(-50%); cursor: pointer; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; z-index: 10; line-height: 0;`;
-                    copyBtn.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="12" height="12"/><polyline points="5,15 3,15 3,3 15,3 15,5"/></svg>`;
+                    copyBtn.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF00FF" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="12" height="12"/><polyline points="5,15 3,15 3,3 15,3 15,5"/></svg>`;
                     block.appendChild(copyBtn);
 
                     const dlBtn = document.createElement('div');
                     dlBtn.style.cssText = `position: absolute; top: 70px; left: 50%; transform: translateX(-50%); cursor: pointer; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; z-index: 10; line-height: 0;`;
-                    dlBtn.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7,10 12,15 17,10"/><line x1="5" y1="20" x2="19" y2="20"/></svg>`;
+                    dlBtn.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF00FF" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7,10 12,15 17,10"/><line x1="5" y1="20" x2="19" y2="20"/></svg>`;
                     block.appendChild(dlBtn);
                     wrapper.appendChild(block);
 
@@ -1248,25 +1233,6 @@ function showNextView() {
 
     renderGrid();
 
-    const bottomBtn3 = document.createElement('div');
-    bottomBtn3.id = 'bottom-btn-3';
-    bottomBtn3.style.cssText = `position: fixed; top: 30px; right: 55px; cursor: pointer; z-index: 10; line-height: 0; display: none;`;
-    bottomBtn3.innerHTML = arrowSVG;
-    document.body.appendChild(bottomBtn3);
-
-    bottomBtn3.addEventListener('click', () => {
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
-        window.scrollTo(0, 0);
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-                document.body.style.transform = 'translateY(-100%)';
-                setTimeout(() => { window.location.href = 'end.html'; }, 800);
-            });
-        });
-    });
-
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => { renderGrid(); }, 200);
@@ -1280,6 +1246,7 @@ function showNextView() {
 
     whoseBtn.addEventListener('click', () => {
         whoseBtn.remove();
+        document.getElementById('whose-graphic')?.remove();
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
         page.style.height = '100vh';
@@ -1298,7 +1265,24 @@ function showNextView() {
                     page.style.overflow = 'visible';
                     document.body.style.overflow = '';
                     document.documentElement.style.overflow = '';
-                    document.getElementById('bottom-btn-3').style.display = '';
+
+                    const bottomBtn3 = document.createElement('div');
+                    bottomBtn3.id = 'bottom-btn-3';
+                    bottomBtn3.style.cssText = `position: fixed; top: 30px; right: 55px; cursor: pointer; z-index: 10; line-height: 0;`;
+                    bottomBtn3.innerHTML = arrowSVG;
+                    document.body.appendChild(bottomBtn3);
+                    bottomBtn3.addEventListener('click', () => {
+                        document.body.style.overflow = 'hidden';
+                        document.documentElement.style.overflow = 'hidden';
+                        window.scrollTo(0, 0);
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
+                                document.body.style.transform = 'translateY(-100%)';
+                                setTimeout(() => { window.location.href = 'end.html'; }, 800);
+                            });
+                        });
+                    });
                 }, 800);
             });
         });
