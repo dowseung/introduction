@@ -122,6 +122,7 @@ function drawGroupOutlines(clickMsg) {
     document.getElementById('connect-svg-lines')?.remove();
     document.getElementById('connect-svg-boxes')?.remove();
     document.getElementById('top-btn')?.remove();
+    document.getElementById('a-text-panel')?.remove();
 
     const page = document.getElementById('bio-page');
     const bioText = document.getElementById('bio-text');
@@ -243,6 +244,44 @@ function drawGroupOutlines(clickMsg) {
         allKeywords.push(clone);
     });
 
+    // A열 텍스트 표시 패널 (화살표 버튼 아래)
+    const aTextPanel = document.createElement('div');
+    aTextPanel.id = 'a-text-panel';
+    aTextPanel.style.cssText = `
+        position: fixed;
+        top: 160px;
+        right: 55px;
+        width: 22vw;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+        font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
+        font-size: 15px;
+        font-weight: 900;
+        color: #FF00FF;
+        line-height: 1.6;
+        word-break: keep-all;
+        white-space: normal;
+        pointer-events: auto;
+        z-index: 10;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    `;
+    document.body.appendChild(aTextPanel);
+
+    function showAText(rowIdx) {
+        if (rowIdx === null) { aTextPanel.style.opacity = '0'; return; }
+        const row = sheetRows[parseInt(rowIdx) + 1];
+        if (!row) return;
+        const aText = (row[0] || '').trim().replace(/-/g, '');
+        if (!aText) return;
+        aTextPanel.textContent = aText;
+        aTextPanel.style.opacity = '1';
+    }
+
+    function hideAText() {
+        aTextPanel.style.opacity = '0';
+    }
+
     function getMappedRow(kw) {
         return kw.dataset.mappedRow || kw.dataset.rowIdx || null;
     }
@@ -277,18 +316,23 @@ function drawGroupOutlines(clickMsg) {
             allKeywords.forEach(k => {
                 k.style.opacity = getMappedRow(k) === activeR ? '1' : '0.15';
             });
+            showAText(activeR);
         });
 
         kw.addEventListener('mouseleave', () => {
             if (activeRow) return;
             resetAll();
+            hideAText();
         });
 
         kw.addEventListener('click', e => {
             e.stopPropagation();
             const clickedRow = getMappedRow(kw);
-            if (activeRow === clickedRow) { activeRow = null; resetAll(); }
-            else { activeRow = clickedRow; fadeOthers(activeRow); }
+            if (activeRow === clickedRow) {
+                activeRow = null; resetAll(); hideAText();
+            } else {
+                activeRow = clickedRow; fadeOthers(activeRow); showAText(activeRow);
+            }
         });
     });
 
@@ -510,11 +554,21 @@ function drawGroupOutlines(clickMsg) {
 
                     const page = document.getElementById('bio-page');
                     page.style.paddingTop = '0';
+                    page.style.paddingBottom = '0';
                     page.style.height = 'auto';
                     page.style.minHeight = '0';
                     page.style.overflow = 'visible';
                     document.body.style.overflow = '';
                     document.documentElement.style.overflow = '';
+
+                    // 높이에 영향 주는 요소들 완전 제거
+                    const bioTextEl2 = document.getElementById('bio-text');
+                    if (bioTextEl2) bioTextEl2.remove();
+                    document.getElementById('connect-svg-lines')?.remove();
+                    document.getElementById('connect-svg-boxes')?.remove();
+                    document.getElementById('circle-col')?.remove();
+                    document.getElementById('text-outline-svg')?.remove();
+
                     page.appendChild(listContainer);
 
                     requestAnimationFrame(() => {
@@ -556,7 +610,7 @@ function drawGroupOutlines(clickMsg) {
     }
 
     document.addEventListener('click', () => {
-        if (activeRow) { activeRow = null; resetAll(); }
+        if (activeRow) { activeRow = null; resetAll(); hideAText(); }
     });
 }
 
@@ -685,7 +739,7 @@ window.addEventListener('load', async () => {
     const scrollMsg = document.createElement('div');
     scrollMsg.id = 'scroll-msg';
     scrollMsg.innerHTML = `
-    <div style="position:fixed;top:40px;right:3vw;display:flex;flex-direction:column;text-align:right;white-space:nowrap;">
+    <div style="position:fixed;top:60px;right:3vw;display:flex;flex-direction:column;text-align:right;white-space:nowrap;">
         <span style="display:block;text-align:right;">READ</span>
         <span style="display:block;text-align:right;">SCROLL</span>
         <span style="display:block;text-align:right;">CHANGE</span>
@@ -1030,6 +1084,8 @@ window.addEventListener('load', async () => {
         if (activeMenu && !activeMenu.contains(e.target) && e.target !== activeSpan) closeMenu();
     });
 
+    initBannerDropdown();
+
     const backBtn = document.getElementById('back-btn');
     if (backBtn) {
         if (window.history.length > 1) {
@@ -1040,6 +1096,103 @@ window.addEventListener('load', async () => {
         }
     }
 });
+
+function initBannerDropdown() {
+    const bannerOf = document.querySelector('#site-banner span:nth-child(2)');
+    if (!bannerOf) return;
+
+    document.getElementById('banner-dropdown')?.remove();
+
+    const pages = [
+        { label: 'READ SCROLL CHANGE' },
+        { label: 'CLICK THE TEXT' },
+        { label: 'FILL IN THE BLANK' },
+        { label: 'HOVER AND CLICK' },
+        { label: 'WHOSE?' },
+    ];
+
+    const dropdown = document.createElement('div');
+    dropdown.id = 'banner-dropdown';
+    dropdown.style.cssText = `
+        position: fixed;
+        top: 36px;
+        left: calc(50% + 12.5%);
+        display: none;
+        flex-direction: column;
+        z-index: 200;
+        pointer-events: auto;
+    `;
+
+    pages.forEach(pg => {
+        const item = document.createElement('span');
+        item.textContent = pg.label;
+        item.style.cssText = `
+            display: block;
+            font-family: "AvantGarde", sans-serif;
+            font-size: 14px;
+            font-weight: 100;
+            color: #00FF00;
+            cursor: pointer;
+            line-height: 2;
+            white-space: nowrap;
+            text-decoration: none;
+        `;
+        item.addEventListener('mouseenter', () => { item.style.textDecoration = 'underline'; });
+        item.addEventListener('mouseleave', () => { item.style.textDecoration = 'none'; });
+        item.addEventListener('click', () => {
+            dropdown.style.display = 'none';
+            bannerOf.style.color = '';
+
+            if (pg.label === 'READ SCROLL CHANGE') {
+                window.location.href = 'bio.html';
+            } else if (pg.label === 'CLICK THE TEXT') {
+                window.location.href = 'bio.html';
+            } else if (pg.label === 'FILL IN THE BLANK') {
+                if (window.location.pathname.includes('bio')) {
+                    document.getElementById('switch-btn')?.click();
+                } else {
+                    window.location.href = 'bio.html';
+                }
+            } else if (pg.label === 'HOVER AND CLICK') {
+                if (window.location.pathname.includes('bio')) {
+                    const sw = document.getElementById('switch-btn');
+                    if (sw && sw.style.display !== 'none') sw.click();
+                } else {
+                    window.location.href = 'bio.html';
+                }
+            } else if (pg.label === 'WHOSE?') {
+                if (window.location.pathname.includes('bio')) {
+                    document.getElementById('bottom-btn-2')?.click();
+                } else {
+                    window.location.href = 'bio.html';
+                }
+            }
+        });
+        dropdown.appendChild(item);
+    });
+
+    document.body.appendChild(dropdown);
+
+    bannerOf.style.cursor = 'pointer';
+    bannerOf.style.transition = 'color 0.2s ease';
+
+    bannerOf.addEventListener('mouseenter', () => {
+        bannerOf.style.color = '#FF00FF';
+        dropdown.style.display = 'flex';
+    });
+    bannerOf.addEventListener('mouseleave', (e) => {
+        if (!dropdown.contains(e.relatedTarget)) {
+            bannerOf.style.color = '';
+            dropdown.style.display = 'none';
+        }
+    });
+    dropdown.addEventListener('mouseleave', (e) => {
+        if (e.relatedTarget !== bannerOf) {
+            bannerOf.style.color = '';
+            dropdown.style.display = 'none';
+        }
+    });
+}
 
 function showNextView() {
     const page = document.getElementById('bio-page');
@@ -1056,6 +1209,7 @@ function showNextView() {
     document.getElementById('typing-output')?.remove();
     document.getElementById('switch-btn')?.remove();
     document.getElementById('whose-graphic')?.remove();
+    document.getElementById('a-text-panel')?.remove();
     document.querySelectorAll('.label-overlay').forEach(el => el.remove());
 
     page.innerHTML = '';
@@ -1093,8 +1247,8 @@ function showNextView() {
 
     const whoseGraphic = document.createElement('div');
     whoseGraphic.id = 'whose-graphic';
-    whoseGraphic.style.cssText = `position: fixed; bottom: 0; left: 0; width: 7.5vw; pointer-events: none; z-index: 0;`;
-    whoseGraphic.innerHTML = `<svg id="_레이어_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 958.64 740.72"><defs><style>.cls-1{fill:none;stroke:#f0f;stroke-miterlimit:10;stroke-width:10px;}.cls-2{fill:url(#_무제_그라디언트_3);}.cls-3{fill:url(#_무제_그라디언트_3-2);}</style><linearGradient id="_무제_그라디언트_3" x1="-52.75" y1="523.63" x2="-52.75" y2="1.36" gradientTransform="translate(539 738.23) scale(1 -1)" gradientUnits="userSpaceOnUse"><stop offset=".33" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#f0f"/></linearGradient><linearGradient id="_무제_그라디언트_3-2" y1="863.8" y2="341.52" xlink:href="#_무제_그라디언트_3"/></defs><path class="cls-2" d="M486.25,736.87L13.86,345.16h944.77l-472.39,391.7Z"/><polyline class="cls-1" points="486.25 345.16 13.86 345.16 486.25 736.87"/><path class="cls-3" d="M486.25,396.7L13.86,5h944.77s-472.39,391.7-472.39,391.7Z"/><polyline class="cls-1" points="486.25 5 13.86 5 486.25 396.7"/></svg>`;
+    whoseGraphic.style.cssText = `position: fixed; bottom: 0; left: 0; width: 21vw; pointer-events: none; z-index: 0;`;
+    whoseGraphic.innerHTML = `<svg id="_레이어_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 309.07 419.52"><defs><style>.cls-1{fill:none;stroke:#f0f;stroke-miterlimit:10;stroke-width:20px;}</style></defs><polyline class="cls-1" points="302.69 238 27.73 10 302.69 10"/><polyline class="cls-1" points="302.69 183.82 27.73 183.82 302.69 411.82"/></svg>`;
     document.body.appendChild(whoseGraphic);
 
     const textPairs = sheetRows.slice(1)
@@ -1179,15 +1333,15 @@ function showNextView() {
                     block.appendChild(svgEl);
 
                     const copyBtn = document.createElement('div');
-                    copyBtn.style.cssText = `position: absolute; top: 18px; left: 50%; transform: translateX(-50%); cursor: pointer; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; z-index: 10; line-height: 0;`;
-                    copyBtn.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF00FF" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="12" height="12"/><polyline points="5,15 3,15 3,3 15,3 15,5"/></svg>`;
+                    copyBtn.style.cssText = `display:none;`;
                     block.appendChild(copyBtn);
 
                     const dlBtn = document.createElement('div');
-                    dlBtn.style.cssText = `position: absolute; top: 70px; left: 50%; transform: translateX(-50%); cursor: pointer; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; z-index: 10; line-height: 0;`;
-                    dlBtn.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF00FF" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7,10 12,15 17,10"/><line x1="5" y1="20" x2="19" y2="20"/></svg>`;
+                    dlBtn.style.cssText = `display:none;`;
                     block.appendChild(dlBtn);
                     wrapper.appendChild(block);
+
+                    let isSelected = false;
 
                     wrapper.addEventListener('mouseenter', () => {
                         const bRect = block.getBoundingClientRect();
@@ -1200,28 +1354,80 @@ function showNextView() {
                             rectBorder.style.transition = 'stroke-dashoffset 0.6s ease';
                             rectBorder.style.strokeDashoffset = '0';
                         }); });
-                        copyBtn.style.opacity = '1'; copyBtn.style.pointerEvents = 'auto';
-                        dlBtn.style.opacity = '1'; dlBtn.style.pointerEvents = 'auto';
                     });
                     wrapper.addEventListener('mouseleave', () => {
-                        svgEl.style.opacity = '0';
-                        copyBtn.style.opacity = '0'; copyBtn.style.pointerEvents = 'none';
-                        dlBtn.style.opacity = '0'; dlBtn.style.pointerEvents = 'none';
+                        if (!isSelected) svgEl.style.opacity = '0';
                     });
-                    copyBtn.addEventListener('mouseenter', () => { copyBtn.style.opacity = '0.3'; });
-                    copyBtn.addEventListener('mouseleave', () => { copyBtn.style.opacity = '1'; });
-                    copyBtn.addEventListener('click', (e) => { e.stopPropagation(); navigator.clipboard.writeText(blockText); });
-                    dlBtn.addEventListener('mouseenter', () => { dlBtn.style.opacity = '0.3'; });
-                    dlBtn.addEventListener('mouseleave', () => { dlBtn.style.opacity = '1'; });
-                    dlBtn.addEventListener('click', (e) => {
+
+                    wrapper.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const blob = new Blob([blockText], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = blockName.replace(/\s+/g, '_') + '.txt';
-                        a.click();
-                        URL.revokeObjectURL(url);
+                        const panel = document.getElementById('whose-action-panel');
+
+                        if (isSelected) {
+                            // 재클릭 시 패널 숨기기
+                            isSelected = false;
+                            svgEl.style.opacity = '0';
+                            if (panel) panel.remove();
+                            return;
+                        }
+
+                        // 다른 선택 해제
+                        document.querySelectorAll('.whose-selected-svg').forEach(s => {
+                            s.style.opacity = '0';
+                            s.dataset.selected = '';
+                        });
+                        document.querySelectorAll('.whose-wrapper-selected').forEach(w => {
+                            w._isSelected = false;
+                        });
+                        if (panel) panel.remove();
+
+                        isSelected = true;
+                        svgEl.style.opacity = '1';
+                        svgEl.dataset.selected = 'true';
+                        svgEl.classList.add('whose-selected-svg');
+                        wrapper.classList.add('whose-wrapper-selected');
+                        wrapper._isSelected = true;
+
+                        // 화살표 버튼 아래에 패널 생성
+                        const actionPanel = document.createElement('div');
+                        actionPanel.id = 'whose-action-panel';
+                        actionPanel.style.cssText = `
+                            position: fixed;
+                            bottom: 40px;
+                            right: 55px;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            gap: 32px;
+                            z-index: 100;
+                        `;
+
+                        const cpBtn = document.createElement('div');
+                        cpBtn.style.cssText = `cursor: pointer; line-height: 0; transition: opacity 0.2s ease;`;
+                        cpBtn.innerHTML = `<svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="12" height="12"/><polyline points="5,15 3,15 3,3 15,3 15,5"/></svg>`;
+                        cpBtn.addEventListener('mouseenter', () => { cpBtn.style.opacity = '0.3'; });
+                        cpBtn.addEventListener('mouseleave', () => { cpBtn.style.opacity = '1'; });
+                        cpBtn.addEventListener('click', (e) => { e.stopPropagation(); navigator.clipboard.writeText(blockText); });
+
+                        const dlBtnPanel = document.createElement('div');
+                        dlBtnPanel.style.cssText = `cursor: pointer; line-height: 0; transition: opacity 0.2s ease;`;
+                        dlBtnPanel.innerHTML = `<svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7,10 12,15 17,10"/><line x1="5" y1="20" x2="19" y2="20"/></svg>`;
+                        dlBtnPanel.addEventListener('mouseenter', () => { dlBtnPanel.style.opacity = '0.3'; });
+                        dlBtnPanel.addEventListener('mouseleave', () => { dlBtnPanel.style.opacity = '1'; });
+                        dlBtnPanel.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const blob = new Blob([blockText], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = blockName.replace(/\s+/g, '_') + '.txt';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                        });
+
+                        actionPanel.appendChild(cpBtn);
+                        actionPanel.appendChild(dlBtnPanel);
+                        document.body.appendChild(actionPanel);
                     });
                 }
                 container.appendChild(wrapper);
@@ -1252,6 +1458,7 @@ function showNextView() {
     whoseBtn.addEventListener('click', () => {
         whoseBtn.remove();
         document.getElementById('whose-graphic')?.remove();
+        document.getElementById('whose-action-panel')?.remove();
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
         page.style.height = '100vh';

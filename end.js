@@ -1,3 +1,83 @@
+function initBannerDropdown() {
+    const bannerOf = document.querySelector('#site-banner span:nth-child(2)');
+    if (!bannerOf) return;
+
+    document.getElementById('banner-dropdown')?.remove();
+
+    const pages = [
+        { label: 'READ SCROLL CHANGE' },
+        { label: 'FILL IN THE BLANK' },
+        { label: 'HOVER AND CLICK' },
+        { label: 'DESIGNER NAME JOB...' },
+        { label: 'WHOSE?' },
+        { label: 'NAMES' },
+    ];
+
+    const dropdown = document.createElement('div');
+    dropdown.id = 'banner-dropdown';
+    dropdown.style.cssText = `
+        position: fixed;
+        top: 32px;
+        left: calc(50% + 12.5%);
+        display: none;
+        flex-direction: column;
+        padding-top: 4px;
+        z-index: 200;
+        pointer-events: auto;
+    `;
+
+    pages.forEach(pg => {
+        const item = document.createElement('span');
+        item.textContent = pg.label;
+        item.style.cssText = `
+            display: block;
+            font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
+            font-size: 14px;
+            font-weight: 900;
+            color: #C5A028;
+            cursor: pointer;
+            line-height: 2;
+            white-space: nowrap;
+            letter-spacing: 0.05em;
+        `;
+        item.addEventListener('mouseenter', () => { item.style.textDecoration = 'underline'; });
+        item.addEventListener('mouseleave', () => { item.style.textDecoration = 'none'; });
+        item.addEventListener('click', () => {
+            window.location.href = 'bio.html';
+        });
+        dropdown.appendChild(item);
+    });
+
+    document.body.appendChild(dropdown);
+
+    bannerOf.style.cursor = 'pointer';
+    bannerOf.style.transition = 'color 0.2s ease';
+    bannerOf.style.pointerEvents = 'auto';
+
+    let hideTimer = null;
+
+    bannerOf.addEventListener('mouseenter', () => {
+        clearTimeout(hideTimer);
+        bannerOf.style.color = '#FF00FF';
+        dropdown.style.display = 'flex';
+    });
+    bannerOf.addEventListener('mouseleave', () => {
+        hideTimer = setTimeout(() => {
+            bannerOf.style.color = '';
+            dropdown.style.display = 'none';
+        }, 100);
+    });
+    dropdown.addEventListener('mouseenter', () => {
+        clearTimeout(hideTimer);
+    });
+    dropdown.addEventListener('mouseleave', () => {
+        hideTimer = setTimeout(() => {
+            bannerOf.style.color = '';
+            dropdown.style.display = 'none';
+        }, 100);
+    });
+}
+
 async function typeWriter(element, text, speed = 30) {
     element.innerText = '';
     element.style.opacity = '1';
@@ -33,6 +113,7 @@ window.addEventListener('load', async () => {
 
     if (document.fonts) await document.fonts.ready;
     adjustFontSize();
+    textElement.style.color = '#00FF00';
     await typeWriter(textElement, originalText, 30);
 
     // 타이핑 가능한 영역 - 자동타이핑 텍스트 바로 아래
