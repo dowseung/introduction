@@ -821,6 +821,10 @@ window.addEventListener('load', async () => {
             document.getElementById('circle-col')?.remove();
             document.getElementById('text-outline-svg')?.remove();
             window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // fill in the blank 배경 그래픽
+
+
             setTimeout(() => {
                 clickMsg.innerHTML = 'FILL<br>IN THE<br>BLANK';
                 clickMsg.style.fontSize = 'clamp(8vw, 30vw, 33vh)';
@@ -874,6 +878,7 @@ window.addEventListener('load', async () => {
                     kw.style.position = 'relative';
                     kw.style.display = 'inline';
                     kw.style.color = 'transparent';
+                    kw.style.pointerEvents = 'auto';
 
                     const input = document.createElement('span');
                     input.contentEditable = 'true';
@@ -1088,7 +1093,7 @@ function showNextView() {
 
     const whoseGraphic = document.createElement('div');
     whoseGraphic.id = 'whose-graphic';
-    whoseGraphic.style.cssText = `position: fixed; bottom: 0; left: 0; width: 40vw; pointer-events: none; z-index: 0;`;
+    whoseGraphic.style.cssText = `position: fixed; bottom: 0; left: 0; width: 7.5vw; pointer-events: none; z-index: 0;`;
     whoseGraphic.innerHTML = `<svg id="_레이어_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 958.64 740.72"><defs><style>.cls-1{fill:none;stroke:#f0f;stroke-miterlimit:10;stroke-width:10px;}.cls-2{fill:url(#_무제_그라디언트_3);}.cls-3{fill:url(#_무제_그라디언트_3-2);}</style><linearGradient id="_무제_그라디언트_3" x1="-52.75" y1="523.63" x2="-52.75" y2="1.36" gradientTransform="translate(539 738.23) scale(1 -1)" gradientUnits="userSpaceOnUse"><stop offset=".33" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#f0f"/></linearGradient><linearGradient id="_무제_그라디언트_3-2" y1="863.8" y2="341.52" xlink:href="#_무제_그라디언트_3"/></defs><path class="cls-2" d="M486.25,736.87L13.86,345.16h944.77l-472.39,391.7Z"/><polyline class="cls-1" points="486.25 345.16 13.86 345.16 486.25 736.87"/><path class="cls-3" d="M486.25,396.7L13.86,5h944.77s-472.39,391.7-472.39,391.7Z"/><polyline class="cls-1" points="486.25 5 13.86 5 486.25 396.7"/></svg>`;
     document.body.appendChild(whoseGraphic);
 
@@ -1260,29 +1265,74 @@ function showNextView() {
                     document.body.style.transform = 'none';
                     document.body.style.transition = '';
                     document.getElementById('col-container')?.remove();
+                    document.getElementById('whose-graphic')?.remove();
                     whoseMsg.remove();
                     window.scrollTo(0, 0);
+
+                    // B열 텍스트 수집 후 랜덤 셔플
+                    const bColVals = [];
+                    sheetRows.slice(1).forEach(row => {
+                        const val = (row[1] || '').trim();
+                        if (val) bColVals.push(val);
+                    });
+                    for (let i = bColVals.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [bColVals[i], bColVals[j]] = [bColVals[j], bColVals[i]];
+                    }
+
+                    page.innerHTML = '';
+                    page.style.paddingRight = '0';
+                    page.style.paddingTop = '0';
+                    page.style.paddingLeft = '0';
+                    page.style.paddingBottom = '0';
+                    page.style.height = 'auto';
+                    page.style.minHeight = '100vh';
                     page.style.overflow = 'visible';
                     document.body.style.overflow = '';
                     document.documentElement.style.overflow = '';
 
-                    const bottomBtn3 = document.createElement('div');
-                    bottomBtn3.id = 'bottom-btn-3';
-                    bottomBtn3.style.cssText = `position: fixed; top: 30px; right: 55px; cursor: pointer; z-index: 10; line-height: 0;`;
-                    bottomBtn3.innerHTML = arrowSVG;
-                    document.body.appendChild(bottomBtn3);
-                    bottomBtn3.addEventListener('click', () => {
-                        document.body.style.overflow = 'hidden';
-                        document.documentElement.style.overflow = 'hidden';
-                        window.scrollTo(0, 0);
-                        requestAnimationFrame(() => {
-                            requestAnimationFrame(() => {
-                                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-                                document.body.style.transform = 'translateY(-100%)';
-                                setTimeout(() => { window.location.href = 'end.html'; }, 800);
-                            });
-                        });
+                    const listWrap = document.createElement('div');
+                    listWrap.style.cssText = `
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: flex-start;
+                        width: 100%;
+                        padding: 10vh 55px;
+                        box-sizing: border-box;
+                        gap: 5vh;
+                    `;
+
+                    bColVals.forEach(val => {
+                        const item = document.createElement('div');
+                        item.textContent = val;
+                        item.style.cssText = `
+                            font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
+                            font-size: clamp(48px, 10vw, 160px);
+                            font-weight: 900;
+                            line-height: 1;
+                            text-align: center;
+                            word-break: keep-all;
+                            width: 100%;
+                        `;
+                        listWrap.appendChild(item);
                     });
+
+                    // 우측 화살표 버튼
+                    const nextBtn = document.createElement('div');
+                    nextBtn.style.cssText = `
+                        display: flex;
+                        justify-content: center;
+                        padding: 10vh 0 15vh;
+                        cursor: pointer;
+                    `;
+                    nextBtn.innerHTML = arrowSVG;
+                    nextBtn.addEventListener('click', () => {
+                        window.location.href = 'end.html';
+                    });
+                    listWrap.appendChild(nextBtn);
+                    page.appendChild(listWrap);
+
                 }, 800);
             });
         });
