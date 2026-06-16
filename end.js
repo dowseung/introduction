@@ -26,7 +26,6 @@ function initBannerDropdown() {
         { label: 'HOVER AND CLICK' },
         { label: 'DESIGNER NAME JOB...' },
         { label: 'WHOSE?' },
-        { label: 'DESIGNERS' },
         { label: 'WRITE YOUR OWN' },
     ];
 
@@ -72,8 +71,6 @@ function initBannerDropdown() {
                     window.location.href = 'bio.html#collist';
                 } else if (pg.label === 'WHOSE?') {
                     window.location.href = 'bio.html#whose';
-                } else if (pg.label === 'DESIGNERS') {
-                    window.location.href = 'bio.html#names';
                 } else if (pg.label === 'WRITE YOUR OWN') {
                     window.location.href = 'end.html';
                 }

@@ -868,7 +868,6 @@ window.addEventListener('load', async () => {
     document.body.appendChild(scrollMsg);
     setTimeout(() => {
         scrollMsg.style.opacity = '1';
-        buildTextOutline();
     }, 100);
 
     const switchBtn = document.createElement('div');
@@ -1076,12 +1075,7 @@ window.addEventListener('load', async () => {
     window.addEventListener('resize', () => {
         applyBioFontSize();
         if (document.getElementById('circle-col')) buildCircleCol();
-        if (document.getElementById('text-outline-svg')) {
-            clearTimeout(resizeOutlineTimer);
-            resizeOutlineTimer = setTimeout(() => {
-                requestAnimationFrame(() => requestAnimationFrame(() => buildTextOutline()));
-            }, 150);
-        }
+
         if (document.getElementById('col-list')) return;
         const svgLines = document.getElementById('connect-svg-lines');
         const svgBoxes = document.getElementById('connect-svg-boxes');
@@ -1095,14 +1089,6 @@ window.addEventListener('load', async () => {
     });
 
 
-    let scrollOutlineTimer = null;
-    window.addEventListener('scroll', () => {
-        if (!document.getElementById('text-outline-svg')) return;
-        clearTimeout(scrollOutlineTimer);
-        scrollOutlineTimer = setTimeout(() => {
-            requestAnimationFrame(() => buildTextOutline());
-        }, 50);
-    });
 
     document.addEventListener('click', e => {
         if (activeMenu && !activeMenu.contains(e.target) && e.target !== activeSpan) closeMenu();
@@ -1115,12 +1101,7 @@ window.addEventListener('load', async () => {
 
     // 해시 진입 처리
     const _hash = window.location.hash;
-    if (_hash === '#names') {
-        setTimeout(() => {
-            goToNamesPage();
-            history.replaceState(null, '', window.location.pathname);
-        }, 1400);
-    } else if (_hash === '#fillinblank') {
+    if (_hash === '#fillinblank') {
         setTimeout(() => {
             history.replaceState(null, '', window.location.pathname);
             const sw = document.getElementById('switch-btn');
@@ -1206,7 +1187,6 @@ function initBannerDropdown() {
         { label: 'HOVER AND CLICK' },
         { label: 'DESIGNER NAME JOB...' },
         { label: 'WHOSE?' },
-        { label: 'DESIGNERS' },
         { label: 'WRITE YOUR OWN' },
     ];
 
@@ -1279,7 +1259,7 @@ function initBannerDropdown() {
                         const bb = document.getElementById('bottom-btn');
                         if (bb) bb.click();
                         else goToColListDirect();
-                    } else if (['read', 'fill', 'whose', 'names'].includes(currentStage)) {
+                    } else if (['read', 'fill', 'whose'].includes(currentStage)) {
                         goToColListDirect();
                     } else {
                         window.location.href = 'bio.html#collist';
@@ -1287,7 +1267,7 @@ function initBannerDropdown() {
 
                 } else if (pg.label === 'WHOSE?') {
                     if (currentStage === 'whose') return;
-                    if (['read', 'fill', 'hover', 'collist', 'names'].includes(currentStage)) {
+                    if (['read', 'fill', 'hover', 'collist'].includes(currentStage)) {
                         const bb2 = document.getElementById('bottom-btn-2');
                         if (bb2) {
                             bb2.click();
@@ -1310,14 +1290,6 @@ function initBannerDropdown() {
                         }
                     } else {
                         window.location.href = 'bio.html#whose';
-                    }
-
-                } else if (pg.label === 'DESIGNERS') {
-                    if (currentStage === 'names') return;
-                    if (['read', 'fill', 'hover', 'collist', 'whose'].includes(currentStage)) {
-                        goToNamesPage();
-                    } else {
-                        window.location.href = 'bio.html#names';
                     }
 
                 } else if (pg.label === 'WRITE YOUR OWN') {
@@ -1935,7 +1907,7 @@ function showNextView() {
                     document.getElementById('whose-graphic')?.remove();
                     whoseMsg.remove();
                     window.scrollTo(0, 0);
-                    goToNamesPage();
+                    window.location.href = 'end.html';
 
                 }, 800);
             });
