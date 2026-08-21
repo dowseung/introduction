@@ -3,7 +3,7 @@ const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5ik6NBg
 let sheetRows = [];
 let activeMenu = null;
 let activeSpan = null;
-let currentStage = 'read'; // 'read' | 'fill' | 'hover' | 'collist' | 'whose' | 'names'
+let currentStage = 'read'; // 'read' | 'hover' | 'collist'
 
 const arrowSVG = `<svg viewBox="0 0 110 60" width="15vw" height="7.5vw" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;">
     <line x1="0" y1="30" x2="95" y2="30" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
@@ -119,7 +119,7 @@ function openMenu(span) {
     activeSpan = span;
 }
 
-function drawGroupOutlines(clickMsg) {
+function drawGroupOutlines() {
     document.getElementById('connect-svg-lines')?.remove();
     document.getElementById('connect-svg-boxes')?.remove();
     document.getElementById('top-btn')?.remove();
@@ -350,7 +350,6 @@ function drawGroupOutlines(clickMsg) {
 
     topBtn.addEventListener('click', () => {
         topBtn.style.display = 'none';
-        clickMsg.style.opacity = '0';
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
         window.scrollTo(0, 0);
@@ -435,22 +434,6 @@ function drawGroupOutlines(clickMsg) {
                     kw.style.opacity = '0';
                 });
 
-                if (clickMsg) {
-                    const lines = ['DESIGNER','NAME','JOB','SCHOOL','MAJOR','ORGANIZATION','BOOK','EXHIBITION','TIME','PLACE','SPACE'];
-                    clickMsg.innerHTML = lines.map(l =>
-                        `<span class="label-line" style="display:block;font-weight:100;text-align:right;">${l}</span>`
-                    ).join('');
-                    clickMsg.style.fontSize = 'clamp(4px, 6.5vh, 6.5vw)';
-                    clickMsg.style.lineHeight = '1.05';
-                    clickMsg.style.justifyContent = 'flex-start';
-                    clickMsg.style.alignItems = 'flex-end';
-                    clickMsg.style.paddingTop = '60px';
-                    clickMsg.style.paddingRight = '55px';
-                    clickMsg.style.letterSpacing = '0';
-                    clickMsg.style.overflow = 'hidden';
-                    clickMsg.style.opacity = '1';
-                }
-
                 setTimeout(() => {
                     if (!document.getElementById('bio-text') && !document.getElementById('col-list')) return;
                     if (svgLinesEl) svgLinesEl.style.display = 'none';
@@ -490,20 +473,6 @@ function drawGroupOutlines(clickMsg) {
                         ${colIdx > 1 ? 'border-left: 1px solid #C5A028;' : ''}
                         padding-left: ${colIdx > 1 ? '0.5vw' : '0'};
                     `;
-
-                        const labels = ['DESIGNER','NAME','JOB','SCHOOL','MAJOR','ORGANIZATION','BOOK','EXHIBITION','TIME','PLACE','SPACE'];
-                        const labelIndex = colIdx - 1;
-
-                        col.addEventListener('mouseenter', () => {
-                            clickMsg.querySelectorAll('.label-line').forEach((s, i) => {
-                                s.style.color = i === labelIndex ? '#C5A028' : '#00FF00';
-                            });
-                        });
-                        col.addEventListener('mouseleave', () => {
-                            clickMsg.querySelectorAll('.label-line').forEach(s => {
-                                s.style.color = '#00FF00';
-                            });
-                        });
 
                         const vals = [];
                         sheetRows.slice(1).forEach(row => {
@@ -590,31 +559,6 @@ function drawGroupOutlines(clickMsg) {
                         currentStage = 'collist';
                         initBannerDropdown();
 
-                        const bottomBtn2 = document.createElement('div');
-                        bottomBtn2.id = 'bottom-btn-2';
-                        bottomBtn2.innerHTML = arrowSVG;
-                        document.body.appendChild(bottomBtn2);
-
-                        bottomBtn2.addEventListener('click', () => {
-                            bottomBtn2.remove();
-                            document.body.style.overflow = 'hidden';
-                            document.documentElement.style.overflow = 'hidden';
-                            page.style.height = '100vh';
-                            page.style.overflow = 'hidden';
-                            window.scrollTo(0, 0);
-                            requestAnimationFrame(() => {
-                                requestAnimationFrame(() => {
-                                    document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-                                    document.body.style.transform = 'translateY(-100%)';
-                                    setTimeout(() => {
-                                        document.body.style.transform = 'none';
-                                        document.body.style.transition = '';
-                                        window.scrollTo(0, 0);
-                                        showNextView();
-                                    }, 800);
-                                });
-                            });
-                        });
                     });
                 }, 400);
             }, 300);
@@ -743,20 +687,6 @@ window.addEventListener('load', async () => {
         page.style.transform = 'none';
         page.style.transition = '';
     }, 1300);
-    const clickMsg = document.createElement('div');
-    clickMsg.id = 'click-msg';
-    clickMsg.innerHTML = 'CLICK<br>THE<br>TEXT';
-    document.body.appendChild(clickMsg);
-
-    const scrollMsg = document.createElement('div');
-    scrollMsg.id = 'scroll-msg';
-    scrollMsg.innerHTML = `
-    <div style="position:fixed;top:60px;right:3vw;display:flex;flex-direction:column;text-align:right;white-space:nowrap;">
-        <span style="display:block;text-align:right;">READ</span>
-        <span style="display:block;text-align:right;">SCROLL</span>
-        <span style="display:block;text-align:right;">CHANGE</span>
-    </div>
-    `;
     function buildTextOutline() {
         document.getElementById('text-outline-svg')?.remove();
         const bioTextEl = document.getElementById('bio-text');
@@ -865,198 +795,67 @@ window.addEventListener('load', async () => {
     }
 
     buildCircleCol();
-    document.body.appendChild(scrollMsg);
-    setTimeout(() => {
-        scrollMsg.style.opacity = '1';
-    }, 100);
 
     const switchBtn = document.createElement('div');
     switchBtn.id = 'switch-btn';
     switchBtn.innerHTML = arrowSVG;
     document.body.appendChild(switchBtn);
 
-    let hidden = false;
+    let triggered = false;
 
     switchBtn.addEventListener('click', () => {
-        if (!hidden) {
-            hidden = true;
-            closeMenu();
-            clickMsg.style.opacity = '0';
-            scrollMsg.style.opacity = '0';
-            document.getElementById('circle-col')?.remove();
-            document.getElementById('text-outline-svg')?.remove();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (triggered) return;
+        triggered = true;
 
-            // fill in the blank 배경 그래픽
+        closeMenu();
+        document.getElementById('circle-col')?.remove();
+        document.getElementById('text-outline-svg')?.remove();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
 
+        page.style.paddingRight = '25vw';
+        document.querySelectorAll('.bio-keyword').forEach(kw => {
+            kw.style.color = '';
+            kw.style.position = '';
+            kw.style.visibility = 'visible';
+            kw.style.pointerEvents = 'none';
+        });
+        p.style.height = '';
+        p.style.overflow = '';
 
-            setTimeout(() => {
-                clickMsg.innerHTML = 'FILL<br>IN THE<br>BLANK';
-                clickMsg.style.fontSize = 'clamp(8vw, 30vw, 33vh)';
-                clickMsg.style.lineHeight = '0.95';
-                clickMsg.style.justifyContent = 'flex-start';
-                clickMsg.style.alignItems = 'flex-start';
-                clickMsg.style.paddingTop = '60px';
-                clickMsg.style.paddingLeft = '55px';
-                clickMsg.style.opacity = '1';
-                clickMsg.style.textAlign = 'left';
+        switchBtn.style.display = 'none';
 
-                // 배너 pointer-events 활성화 및 드롭다운 재초기화
-                const siteBannerFill = document.getElementById('site-banner');
-                if (siteBannerFill) siteBannerFill.style.pointerEvents = 'auto';
-                currentStage = 'fill';
-                initBannerDropdown();
-            }, 600);
+        setTimeout(() => {
+            // 배너 pointer-events 활성화 및 드롭다운 재초기화
+            const siteBannerHover = document.getElementById('site-banner');
+            if (siteBannerHover) siteBannerHover.style.pointerEvents = 'auto';
+            currentStage = 'hover';
+            initBannerDropdown();
+        }, 600);
 
-            document.querySelectorAll('.bio-keyword').forEach(kw => {
-                kw.style.pointerEvents = 'none';
-                kw.style.visibility = 'visible';
-            });
-
-            p.style.height = '';
-            p.style.overflow = 'hidden';
-            p.style.textAlign = 'left';
-
-            document.getElementById('typing-output')?.remove();
-            const typingOutput = document.createElement('div');
-            typingOutput.id = 'typing-output';
-            typingOutput.style.cssText = `
-            position: fixed;
-            top: 30px;
-            right: 55px;
-            width: calc(25vw - 55px);
-            padding: 60px 0 60px 0;
-            box-sizing: border-box;
-            font-family: 'LatinThin', "Helvetica Neue", "Helvetica", sans-serif;
-            font-size: 16px;
-            font-weight: 900;
-            color: #C5A028;
-            line-height: 1.6;
-            word-break: keep-all;
-            white-space: normal;
-            word-wrap: break-word;
-            pointer-events: none;
-            z-index: 2;
-        `;
-            document.body.appendChild(typingOutput);
-
-            requestAnimationFrame(() => {
-                p.contentEditable = 'false';
-                p.style.outline = 'none';
-                p.style.caretColor = '#000';
-
-                document.querySelectorAll('.bio-keyword').forEach(kw => {
-                    kw.style.position = 'relative';
-                    kw.style.display = 'inline';
-                    kw.style.color = 'transparent';
-                    kw.style.pointerEvents = 'auto';
-
-                    const input = document.createElement('span');
-                    input.contentEditable = 'true';
-                    input.addEventListener('input', () => {
-                        const allInputs = document.querySelectorAll('.fill-blank');
-                        let combined = '';
-                        allInputs.forEach(el => { combined += el.textContent; });
-                        typingOutput.textContent = combined;
-                    });
-                    input.className = 'fill-blank';
-                    input.style.cssText = `
-                        position: absolute; top: 0; left: 0;
-                        width: 100%; height: 100%;
-                        display: inline; color: #C5A028; caret-color: #C5A028;
-                        outline: none; border-bottom: 1.5px solid #C5A028;
-                        font-family: inherit; font-size: inherit; font-weight: inherit;
-                        white-space: pre-wrap; overflow: hidden; cursor: text;
-                        background: transparent;
-                    `;
-                    kw.appendChild(input);
-                });
-            });
-
-        } else {
-            document.getElementById('typing-output')?.remove();
-            page.style.paddingRight = '25vw';
-            document.querySelectorAll('.fill-blank').forEach(el => el.remove());
-            document.querySelectorAll('.plain-text-visible').forEach(el => {
-                const txt = document.createTextNode(el.textContent);
-                el.replaceWith(txt);
-            });
-            document.querySelectorAll('.keyword-blank-wrapper').forEach(wrapper => {
-                const span = document.createElement('span');
-                span.textContent = wrapper.dataset.origText;
-                span.className = 'bio-keyword';
-                span.dataset.colIdx = wrapper.dataset.colIdx;
-                span.dataset.rowIdx = wrapper.dataset.rowIdx;
-                span.dataset.rowIdxAll = wrapper.dataset.rowIdxAll;
-                span.style.visibility = 'visible';
-                span.style.pointerEvents = 'none';
-                wrapper.replaceWith(span);
-            });
-            
-            document.querySelectorAll('.bio-keyword').forEach(kw => {
-                kw.style.color = '';
-                kw.style.position = '';
-                kw.style.visibility = 'visible';
-                kw.style.pointerEvents = 'none';
-            });
-            p.style.height = '';
-            p.style.overflow = '';
-            document.querySelectorAll('.plain-text').forEach(el => { el.style.visibility = 'hidden'; });
-
-            scrollMsg.style.opacity = '0';
-            clickMsg.style.opacity = '0';
-            switchBtn.style.display = 'none';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-
-            setTimeout(() => {
-                clickMsg.innerHTML = `
-                    <div style="width:100%;display:flex;flex-direction:column;padding:0;box-sizing:border-box;">
-                        <span style="display:block;text-align:left;padding-left:0.5vw;">HOVER</span>
-                        <span style="display:block;text-align:center;">AND</span>
-                        <span style="display:block;text-align:right;padding-right:3vw;">CLICK</span>
-                    </div>
-                `;
-                clickMsg.style.fontSize = 'clamp(10px, 28vw, 28vh)';
-                clickMsg.style.lineHeight = '0.9';
-                clickMsg.style.justifyContent = 'flex-start';
-                clickMsg.style.alignItems = 'flex-start';
-                clickMsg.style.paddingTop = '60px';
-                clickMsg.style.letterSpacing = '-0.02em';
-                clickMsg.style.overflow = 'visible';
-                clickMsg.style.opacity = '1';
-
-                // 배너 pointer-events 활성화 및 드롭다운 재초기화
-                const siteBannerHover = document.getElementById('site-banner');
-                if (siteBannerHover) siteBannerHover.style.pointerEvents = 'auto';
-                currentStage = 'hover';
-                initBannerDropdown();
-            }, 600);
-
-            document.querySelectorAll('.bio-keyword').forEach(kw => { kw.style.pointerEvents = 'none'; });
-            let scrollTimer = null;
-            const onScroll = () => {
-                clearTimeout(scrollTimer);
-                scrollTimer = setTimeout(() => {
-                    window.removeEventListener('scroll', onScroll);
-                    if (!document.getElementById('bio-text')) return;
-                    page.style.transform = 'none';
-                    page.style.transition = '';
-                    page.style.paddingRight = '25vw';
-                    requestAnimationFrame(() => {
-                        drawGroupOutlines(clickMsg);
-                    });
-                }, 100);
-            };
-            window.addEventListener('scroll', onScroll);
-            if (window.scrollY === 0) {
+        document.querySelectorAll('.bio-keyword').forEach(kw => { kw.style.pointerEvents = 'none'; });
+        let scrollTimer = null;
+        const onScroll = () => {
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(() => {
+                window.removeEventListener('scroll', onScroll);
                 if (!document.getElementById('bio-text')) return;
                 page.style.transform = 'none';
                 page.style.transition = '';
                 page.style.paddingRight = '25vw';
                 requestAnimationFrame(() => {
-                    drawGroupOutlines(clickMsg);
+                    drawGroupOutlines();
                 });
-            }
+            }, 100);
+        };
+        window.addEventListener('scroll', onScroll);
+        if (window.scrollY === 0) {
+            if (!document.getElementById('bio-text')) return;
+            page.style.transform = 'none';
+            page.style.transition = '';
+            page.style.paddingRight = '25vw';
+            requestAnimationFrame(() => {
+                drawGroupOutlines();
+            });
         }
     });
 
@@ -1083,7 +882,7 @@ window.addEventListener('load', async () => {
         window.scrollTo(0, 0);
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                drawGroupOutlines(clickMsg);
+                drawGroupOutlines();
             });
         });
     });
@@ -1101,45 +900,16 @@ window.addEventListener('load', async () => {
 
     // 해시 진입 처리
     const _hash = window.location.hash;
-    if (_hash === '#fillinblank') {
+    if (_hash === '#hoverandclick') {
         setTimeout(() => {
             history.replaceState(null, '', window.location.pathname);
             const sw = document.getElementById('switch-btn');
             if (sw) sw.click();
         }, 1400);
-    } else if (_hash === '#hoverandclick') {
-        setTimeout(() => {
-            history.replaceState(null, '', window.location.pathname);
-            const sw = document.getElementById('switch-btn');
-            if (sw) {
-                sw.click();
-                // switch-btn을 두 번 클릭해야 HOVER AND CLICK 단계로 진입
-                setTimeout(() => { sw.click(); }, 700);
-            }
-        }, 1400);
     } else if (_hash === '#collist') {
         setTimeout(() => {
             history.replaceState(null, '', window.location.pathname);
             goToColListDirect();
-        }, 1400);
-    } else if (_hash === '#whose') {
-        setTimeout(() => {
-            history.replaceState(null, '', window.location.pathname);
-            document.body.style.overflow = 'hidden';
-            document.documentElement.style.overflow = 'hidden';
-            const p2 = document.getElementById('bio-page');
-            if (p2) { p2.style.height = '100vh'; p2.style.overflow = 'hidden'; }
-            window.scrollTo(0, 0);
-            requestAnimationFrame(() => { requestAnimationFrame(() => {
-                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-                document.body.style.transform = 'translateY(-100%)';
-                setTimeout(() => {
-                    document.body.style.transform = 'none';
-                    document.body.style.transition = '';
-                    window.scrollTo(0, 0);
-                    showNextView();
-                }, 800);
-            }); });
         }, 1400);
     }
 
@@ -1183,11 +953,8 @@ function initBannerDropdown() {
 
     const pages = [
         { label: 'READ SCROLL CHANGE' },
-        { label: 'FILL IN THE BLANK' },
         { label: 'HOVER AND CLICK' },
         { label: 'DESIGNER NAME JOB...' },
-        { label: 'WHOSE?' },
-        { label: 'WRITE YOUR OWN' },
     ];
 
     const dropdown = document.createElement('div');
@@ -1228,24 +995,9 @@ function initBannerDropdown() {
                     if (currentStage === 'read') return;
                     window.location.href = 'bio.html';
 
-                } else if (pg.label === 'FILL IN THE BLANK') {
-                    if (currentStage === 'fill') return;
-                    if (currentStage === 'read') {
-                        const sw = document.getElementById('switch-btn');
-                        if (sw) sw.click();
-                    } else {
-                        window.location.href = 'bio.html#fillinblank';
-                    }
-
                 } else if (pg.label === 'HOVER AND CLICK') {
                     if (currentStage === 'hover' || currentStage === 'collist') return;
                     if (currentStage === 'read') {
-                        const sw = document.getElementById('switch-btn');
-                        if (sw) {
-                            sw.click();
-                            setTimeout(() => { sw.click(); }, 700);
-                        }
-                    } else if (currentStage === 'fill') {
                         const sw = document.getElementById('switch-btn');
                         if (sw) sw.click();
                     } else {
@@ -1259,41 +1011,11 @@ function initBannerDropdown() {
                         const bb = document.getElementById('bottom-btn');
                         if (bb) bb.click();
                         else goToColListDirect();
-                    } else if (['read', 'fill', 'whose'].includes(currentStage)) {
+                    } else if (currentStage === 'read') {
                         goToColListDirect();
                     } else {
                         window.location.href = 'bio.html#collist';
                     }
-
-                } else if (pg.label === 'WHOSE?') {
-                    if (currentStage === 'whose') return;
-                    if (['read', 'fill', 'hover', 'collist'].includes(currentStage)) {
-                        const bb2 = document.getElementById('bottom-btn-2');
-                        if (bb2) {
-                            bb2.click();
-                        } else {
-                            document.body.style.overflow = 'hidden';
-                            document.documentElement.style.overflow = 'hidden';
-                            const p2 = document.getElementById('bio-page');
-                            if (p2) { p2.style.height = '100vh'; p2.style.overflow = 'hidden'; }
-                            window.scrollTo(0, 0);
-                            requestAnimationFrame(() => { requestAnimationFrame(() => {
-                                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-                                document.body.style.transform = 'translateY(-100%)';
-                                setTimeout(() => {
-                                    document.body.style.transform = 'none';
-                                    document.body.style.transition = '';
-                                    window.scrollTo(0, 0);
-                                    showNextView();
-                                }, 800);
-                            }); });
-                        }
-                    } else {
-                        window.location.href = 'bio.html#whose';
-                    }
-
-                } else if (pg.label === 'WRITE YOUR OWN') {
-                    window.location.href = 'end.html';
                 }
             });
         });
@@ -1334,8 +1056,6 @@ function goToColListDirect() {
     const page = document.getElementById('bio-page');
     if (!page) return;
 
-    document.getElementById('click-msg')?.remove();
-    document.getElementById('scroll-msg')?.remove();
     document.getElementById('connect-svg-lines')?.remove();
     document.getElementById('connect-svg-boxes')?.remove();
     document.getElementById('top-btn')?.remove();
@@ -1352,37 +1072,6 @@ function goToColListDirect() {
     document.getElementById('whose-msg')?.remove();
     document.getElementById('whose-graphic')?.remove();
     document.getElementById('whose-action-panel')?.remove();
-
-    const labels = ['DESIGNER','NAME','JOB','SCHOOL','MAJOR','ORGANIZATION','BOOK','EXHIBITION','TIME','PLACE','SPACE'];
-
-    // clickMsg 역할의 라벨 오버레이
-    const labelOverlay = document.createElement('div');
-    labelOverlay.id = 'click-msg';
-    labelOverlay.style.cssText = `
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        justify-content: flex-start;
-        font-weight: 100;
-        font-family: "AvantGarde", sans-serif;
-        color: #00FF00;
-        pointer-events: none;
-        z-index: 0;
-        font-size: clamp(4px, 6.5vh, 6.5vw);
-        line-height: 1.05;
-        padding-top: 60px;
-        padding-right: 55px;
-        letter-spacing: 0;
-        overflow: hidden;
-        opacity: 1;
-    `;
-    labelOverlay.innerHTML = labels.map(l =>
-        `<span class="label-line" style="display:block;font-weight:100;text-align:right;">${l}</span>`
-    ).join('');
-    document.body.appendChild(labelOverlay);
 
     const listContainer = document.createElement('div');
     listContainer.id = 'col-list';
@@ -1402,7 +1091,6 @@ function goToColListDirect() {
 
     for (let colIdx = 1; colIdx <= 11; colIdx++) {
         const col = document.createElement('div');
-        const labelIndex = colIdx - 1;
         col.style.cssText = `
             flex: 1 1 0;
             min-width: 0;
@@ -1413,14 +1101,6 @@ function goToColListDirect() {
             ${colIdx > 1 ? 'border-left: 1px solid #C5A028;' : ''}
             padding-left: ${colIdx > 1 ? '0.5vw' : '0'};
         `;
-        col.addEventListener('mouseenter', () => {
-            labelOverlay.querySelectorAll('.label-line').forEach((s, i) => {
-                s.style.color = i === labelIndex ? '#C5A028' : '#00FF00';
-            });
-        });
-        col.addEventListener('mouseleave', () => {
-            labelOverlay.querySelectorAll('.label-line').forEach(s => { s.style.color = '#00FF00'; });
-        });
 
         const vals = [];
         sheetRows.slice(1).forEach(row => {
@@ -1496,421 +1176,4 @@ function goToColListDirect() {
     currentStage = 'collist';
     initBannerDropdown();
 
-    const bottomBtn2 = document.createElement('div');
-    bottomBtn2.id = 'bottom-btn-2';
-    bottomBtn2.innerHTML = arrowSVG;
-    document.body.appendChild(bottomBtn2);
-
-    bottomBtn2.addEventListener('click', () => {
-        bottomBtn2.remove();
-        labelOverlay.remove();
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
-        page.style.height = '100vh';
-        page.style.overflow = 'hidden';
-        window.scrollTo(0, 0);
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-                document.body.style.transform = 'translateY(-100%)';
-                setTimeout(() => {
-                    document.body.style.transform = 'none';
-                    document.body.style.transition = '';
-                    window.scrollTo(0, 0);
-                    showNextView();
-                }, 800);
-            });
-        });
-    });
-}
-
-function goToNamesPage() {
-    const page = document.getElementById('bio-page');
-    if (!page) return;
-
-    // 현재 단계 요소들 모두 정리 (whoseMsg 포함 - fixed로 붙어있는 모든 배경 텍스트)
-    document.getElementById('click-msg')?.remove();
-    document.getElementById('scroll-msg')?.remove();
-    document.getElementById('col-list')?.remove();
-    document.getElementById('connect-svg-lines')?.remove();
-    document.getElementById('connect-svg-boxes')?.remove();
-    document.getElementById('top-btn')?.remove();
-    document.getElementById('bottom-btn')?.remove();
-    document.getElementById('bottom-btn-2')?.remove();
-    document.getElementById('bottom-btn-3')?.remove();
-    document.getElementById('typing-output')?.remove();
-    document.getElementById('switch-btn')?.remove();
-    document.getElementById('whose-graphic')?.remove();
-    document.getElementById('a-text-panel')?.remove();
-    document.getElementById('bio-text')?.remove();
-    document.getElementById('circle-col')?.remove();
-    document.getElementById('text-outline-svg')?.remove();
-    document.getElementById('whose-action-panel')?.remove();
-    document.getElementById('whose-msg')?.remove();
-
-    const bColVals = [];
-    sheetRows.slice(1).forEach(row => {
-        const val = (row[1] || '').trim();
-        if (val) bColVals.push(val);
-    });
-    for (let i = bColVals.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [bColVals[i], bColVals[j]] = [bColVals[j], bColVals[i]];
-    }
-
-    page.innerHTML = '';
-    page.style.paddingRight = '0';
-    page.style.paddingTop = '0';
-    page.style.paddingLeft = '0';
-    page.style.paddingBottom = '0';
-    page.style.height = 'auto';
-    page.style.minHeight = '100vh';
-    page.style.overflow = 'visible';
-    page.style.transform = 'none';
-    page.style.transition = '';
-    document.body.style.overflow = '';
-    document.documentElement.style.overflow = '';
-    window.scrollTo(0, 0);
-
-    const listWrap = document.createElement('div');
-    listWrap.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        width: 100%;
-        padding: 10vh 55px;
-        box-sizing: border-box;
-        gap: 5vh;
-    `;
-
-    bColVals.forEach(val => {
-        const item = document.createElement('div');
-        item.textContent = val;
-        item.style.cssText = `
-            font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
-            font-size: clamp(48px, 10vw, 160px);
-            font-weight: 900;
-            line-height: 1;
-            text-align: center;
-            word-break: keep-all;
-            width: 100%;
-        `;
-        listWrap.appendChild(item);
-    });
-
-    // fill-blank 인풋 잔여물 정리
-    document.querySelectorAll('.fill-blank').forEach(el => el.remove());
-    document.getElementById('typing-output')?.remove();
-
-    const arrowEl = document.createElement('div');
-    arrowEl.style.cssText = `display: flex; justify-content: center; padding: 10vh 0 15vh; cursor: pointer;`;
-    arrowEl.innerHTML = arrowSVG;
-    arrowEl.addEventListener('click', () => { window.location.href = 'end.html'; });
-    listWrap.appendChild(arrowEl);
-    page.appendChild(listWrap);
-
-    // 배너 pointer-events 활성화 및 드롭다운 재초기화
-    const siteBanner = document.getElementById('site-banner');
-    if (siteBanner) siteBanner.style.pointerEvents = 'auto';
-    currentStage = 'names';
-    initBannerDropdown();
-}
-
-function showNextView() {
-    const page = document.getElementById('bio-page');
-
-    document.getElementById('click-msg')?.remove();
-    document.getElementById('scroll-msg')?.remove();
-    document.getElementById('col-list')?.remove();
-    document.getElementById('connect-svg-lines')?.remove();
-    document.getElementById('connect-svg-boxes')?.remove();
-    document.getElementById('top-btn')?.remove();
-    document.getElementById('bottom-btn')?.remove();
-    document.getElementById('bottom-btn-2')?.remove();
-    document.getElementById('bottom-btn-3')?.remove();
-    document.getElementById('typing-output')?.remove();
-    document.getElementById('switch-btn')?.remove();
-    document.getElementById('whose-graphic')?.remove();
-    document.getElementById('whose-msg')?.remove();
-    document.getElementById('a-text-panel')?.remove();
-    document.querySelectorAll('.label-overlay').forEach(el => el.remove());
-
-    page.innerHTML = '';
-    page.style.paddingRight = '0';
-    page.style.paddingTop = '0';
-    page.style.paddingLeft = '0';
-    page.style.paddingBottom = '0';
-    page.style.height = '100vh';
-    page.style.minHeight = '100vh';
-    page.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-    window.scrollTo(0, 0);
-
-    const whoseMsg = document.createElement('div');
-    whoseMsg.id = 'whose-msg';
-    whoseMsg.style.cssText = `
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        display: flex;
-        align-items: flex-start;
-        justify-content: flex-start;
-        font-family: "AvantGarde", sans-serif;
-        font-weight: 100;
-        color: #00FF00;
-        pointer-events: none;
-        z-index: 0;
-        opacity: 0;
-        transition: opacity 0.5s ease;
-    `;
-    whoseMsg.innerHTML = `
-    <div style="text-align:left; padding: 60px 0 0 55px;">
-        <span style="display:block;font-size:min(18vw, 45vh);line-height:1;letter-spacing:0.05em;white-space:nowrap;color:#00FF00;">WHOSE?</span>
-    </div>`;
-    document.body.appendChild(whoseMsg);
-    requestAnimationFrame(() => { requestAnimationFrame(() => { whoseMsg.style.opacity = '1'; }); });
-
-    const whoseGraphic = document.createElement('div');
-    whoseGraphic.id = 'whose-graphic';
-    whoseGraphic.style.cssText = `position: fixed; bottom: 0; left: 0; width: 21vw; pointer-events: none; z-index: 0;`;
-    whoseGraphic.innerHTML = `<svg id="_레이어_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 309.07 419.52"><defs><style>.cls-1{fill:none;stroke:#f0f;stroke-miterlimit:10;stroke-width:20px;}</style></defs><polyline class="cls-1" points="302.69 238 27.73 10 302.69 10"/><polyline class="cls-1" points="302.69 183.82 27.73 183.82 302.69 411.82"/></svg>`;
-    document.body.appendChild(whoseGraphic);
-
-    const textPairs = sheetRows.slice(1)
-        .map(row => ({ a: (row[0] || '').trim(), b: (row[1] || '').trim() }))
-        .filter(p => p.a);
-
-    for (let i = textPairs.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [textPairs[i], textPairs[j]] = [textPairs[j], textPairs[i]];
-    }
-
-    function getNumCols() {
-        const w = window.innerWidth;
-        if (w >= 1200) return 8;
-        if (w >= 900) return 6;
-        if (w >= 600) return 4;
-        return 2;
-    }
-
-    let resizeTimer = null;
-
-    function renderGrid() {
-        document.getElementById('col-container')?.remove();
-
-        const NUM_COLS = getNumCols();
-        const padLeft = 55, padRight = 40, gap = 20;
-        const totalGap = (NUM_COLS - 1) * gap;
-        const colWidth = (window.innerWidth - padLeft - padRight - totalGap) / NUM_COLS;
-        const fontSize = Math.max(6, Math.min(13, colWidth / 10));
-
-        const container = document.createElement('div');
-        container.id = 'col-container';
-        container.style.cssText = `
-        display: grid;
-        grid-template-columns: repeat(${NUM_COLS}, minmax(0, 1fr));
-        align-items: start;
-        width: 100%;
-        padding: 60px 25vw 120px ${padLeft}px;
-            box-sizing: border-box;
-            column-gap: ${gap}px;
-            overflow-x: hidden;
-        `;
-
-        const numRows = Math.ceil(textPairs.length / NUM_COLS);
-        for (let r = 0; r < numRows; r++) {
-            for (let c = 0; c < NUM_COLS; c++) {
-                const idx = r * NUM_COLS + c;
-                const wrapper = document.createElement('div');
-                wrapper.style.cssText = `position: relative; padding-top: 20px; padding-bottom: 20px; border-top: 1.5px solid #C5A028;`;
-
-                if (idx < textPairs.length) {
-                    const blockText = textPairs[idx].a;
-                    const blockName = textPairs[idx].b || blockText.slice(0, 20);
-
-                    const block = document.createElement('div');
-                    block.style.cssText = `
-                        position: relative;
-                        font-family: 'LatinThin', "Helvetica Neue", "Helvetica", "Asta Sans", sans-serif;
-                        font-size: ${fontSize}px;
-                        font-weight: 900;
-                        line-height: 1.6;
-                        overflow-wrap: break-word;
-                        word-break: keep-all;
-                    `;
-
-                    const textNode = document.createElement('span');
-                    textNode.textContent = blockText;
-                    textNode.style.cssText = `display: block; position: relative; z-index: 1;`;
-                    block.appendChild(textNode);
-
-                    const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                    svgEl.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; opacity: 0; transition: opacity 0.2s ease;`;
-                    const rectBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                    rectBg.setAttribute('width', '100%'); rectBg.setAttribute('height', '100%');
-                    rectBg.setAttribute('fill', 'rgba(0,255,0,0.1)'); rectBg.setAttribute('stroke', 'none');
-                    svgEl.appendChild(rectBg);
-                    const rectBorder = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                    rectBorder.setAttribute('width', '100%'); rectBorder.setAttribute('height', '100%');
-                    rectBorder.setAttribute('fill', 'none'); rectBorder.setAttribute('stroke', '#00FF00');
-                    rectBorder.setAttribute('stroke-width', '1.5');
-                    svgEl.appendChild(rectBorder);
-                    block.appendChild(svgEl);
-
-                    const copyBtn = document.createElement('div');
-                    copyBtn.style.cssText = `display:none;`;
-                    block.appendChild(copyBtn);
-
-                    const dlBtn = document.createElement('div');
-                    dlBtn.style.cssText = `display:none;`;
-                    block.appendChild(dlBtn);
-                    wrapper.appendChild(block);
-
-                    let isSelected = false;
-
-                    wrapper.addEventListener('mouseenter', () => {
-                        const bRect = block.getBoundingClientRect();
-                        const perimeter = 2 * (bRect.width + bRect.height);
-                        rectBorder.style.transition = 'none';
-                        rectBorder.style.strokeDasharray = perimeter;
-                        rectBorder.style.strokeDashoffset = perimeter;
-                        svgEl.style.opacity = '1';
-                        requestAnimationFrame(() => { requestAnimationFrame(() => {
-                            rectBorder.style.transition = 'stroke-dashoffset 0.6s ease';
-                            rectBorder.style.strokeDashoffset = '0';
-                        }); });
-                    });
-                    wrapper.addEventListener('mouseleave', () => {
-                        if (!isSelected) svgEl.style.opacity = '0';
-                    });
-
-                    wrapper.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const panel = document.getElementById('whose-action-panel');
-
-                        if (isSelected) {
-                            // 재클릭 시 패널 숨기기
-                            isSelected = false;
-                            svgEl.style.opacity = '0';
-                            if (panel) panel.remove();
-                            return;
-                        }
-
-                        // 다른 선택 해제
-                        document.querySelectorAll('.whose-selected-svg').forEach(s => {
-                            s.style.opacity = '0';
-                            s.dataset.selected = '';
-                        });
-                        document.querySelectorAll('.whose-wrapper-selected').forEach(w => {
-                            w._isSelected = false;
-                        });
-                        if (panel) panel.remove();
-
-                        isSelected = true;
-                        svgEl.style.opacity = '1';
-                        svgEl.dataset.selected = 'true';
-                        svgEl.classList.add('whose-selected-svg');
-                        wrapper.classList.add('whose-wrapper-selected');
-                        wrapper._isSelected = true;
-
-                        // 화살표 버튼 아래에 패널 생성
-                        const actionPanel = document.createElement('div');
-                        actionPanel.id = 'whose-action-panel';
-                        actionPanel.style.cssText = `
-                            position: fixed;
-                            bottom: 40px;
-                            right: 55px;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            gap: 32px;
-                            z-index: 100;
-                        `;
-
-                        const cpBtn = document.createElement('div');
-                        cpBtn.style.cssText = `cursor: pointer; line-height: 0; transition: opacity 0.2s ease;`;
-                        cpBtn.innerHTML = `<svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="12" height="12"/><polyline points="5,15 3,15 3,3 15,3 15,5"/></svg>`;
-                        cpBtn.addEventListener('mouseenter', () => { cpBtn.style.opacity = '0.3'; });
-                        cpBtn.addEventListener('mouseleave', () => { cpBtn.style.opacity = '1'; });
-                        cpBtn.addEventListener('click', (e) => { e.stopPropagation(); navigator.clipboard.writeText(blockText); });
-
-                        const dlBtnPanel = document.createElement('div');
-                        dlBtnPanel.style.cssText = `cursor: pointer; line-height: 0; transition: opacity 0.2s ease;`;
-                        dlBtnPanel.innerHTML = `<svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="0.8" stroke-linecap="square" stroke-linejoin="miter" xmlns="http://www.w3.org/2000/svg"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7,10 12,15 17,10"/><line x1="5" y1="20" x2="19" y2="20"/></svg>`;
-                        dlBtnPanel.addEventListener('mouseenter', () => { dlBtnPanel.style.opacity = '0.3'; });
-                        dlBtnPanel.addEventListener('mouseleave', () => { dlBtnPanel.style.opacity = '1'; });
-                        dlBtnPanel.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            const blob = new Blob([blockText], { type: 'text/plain' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = blockName.replace(/\s+/g, '_') + '.txt';
-                            a.click();
-                            URL.revokeObjectURL(url);
-                        });
-
-                        actionPanel.appendChild(cpBtn);
-                        actionPanel.appendChild(dlBtnPanel);
-                        document.body.appendChild(actionPanel);
-                    });
-                }
-                container.appendChild(wrapper);
-            }
-        }
-
-        page.appendChild(container);
-        page.style.height = 'auto';
-        page.style.minHeight = '100vh';
-        document.body.style.overflow = '';
-        document.documentElement.style.overflow = '';
-        window.scrollTo(0, 0);
-    }
-
-    renderGrid();
-
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => { renderGrid(); }, 200);
-    });
-
-    // 배너 pointer-events 활성화 및 드롭다운 재초기화
-    const siteBannerWhose = document.getElementById('site-banner');
-    if (siteBannerWhose) siteBannerWhose.style.pointerEvents = 'auto';
-    currentStage = 'whose';
-    initBannerDropdown();
-
-    const whoseBtn = document.createElement('div');
-    whoseBtn.id = 'bottom-btn-2';
-    whoseBtn.style.cssText = `position: fixed; top: 30px; right: 55px; cursor: pointer; z-index: 11; line-height: 0;`;
-    whoseBtn.innerHTML = arrowSVG;
-    document.body.appendChild(whoseBtn);
-
-    whoseBtn.addEventListener('click', () => {
-        whoseBtn.remove();
-        document.getElementById('whose-graphic')?.remove();
-        document.getElementById('whose-action-panel')?.remove();
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
-        page.style.height = '100vh';
-        page.style.overflow = 'hidden';
-        window.scrollTo(0, 0);
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                document.body.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-                document.body.style.transform = 'translateY(-100%)';
-                setTimeout(() => {
-                    document.body.style.transform = 'none';
-                    document.body.style.transition = '';
-                    document.getElementById('col-container')?.remove();
-                    document.getElementById('whose-graphic')?.remove();
-                    whoseMsg.remove();
-                    window.scrollTo(0, 0);
-                    window.location.href = 'end.html';
-
-                }, 800);
-            });
-        });
-    });
 }
