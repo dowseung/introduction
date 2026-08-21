@@ -10,6 +10,19 @@ const arrowSVG = `<svg viewBox="0 0 110 60" width="15vw" height="7.5vw" xmlns="h
     <polyline points="75,10 95,30 75,50" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
+const LEFT_GRAPHIC_VB = { w: 230.27, h: 245.44 };
+const LEFT_GRAPHIC_PATHS = `<path d="M191.87,48.48l22.8-3.95c.84-.15.89-1.33.07-1.55l-71.65-19.19-.1-.03h-75.53c-.07,0-.13,0-.2.02l-47.05,12c-.79.2-.8,1.32-.01,1.54l19.2,5.23c.79.21.78,1.34-.01,1.54l-19.18,4.89c-.79.2-.8,1.32-.01,1.54l50.35,13.72h-3.1c-.07,0-.13,0-.2.02l-47.05,12c-.79.2-.8,1.32-.01,1.54l50.35,13.72h-3.1c-.07,0-.13,0-.2.02l-47.05,12c-.79.2-.8,1.32-.01,1.54l50.35,13.72h-3.1c-.07,0-.13,0-.2.02l-47.05,12c-.79.2-.8,1.32-.01,1.54l50.35,13.72h-3.1c-.07,0-.13,0-.2.02l-47.05,12c-.79.2-.8,1.32-.01,1.54l91.61,24.96.18.05,102.68-17.8c.84-.15.89-1.33.07-1.55l-54.85-14.69c-.82-.22-.77-1.41.07-1.55l54.71-9.48c.84-.15.89-1.33.07-1.55l-54.85-14.69c-.82-.22-.77-1.41.07-1.55l54.71-9.48c.84-.15.89-1.33.07-1.55l-54.85-14.69c-.82-.22-.77-1.41.07-1.55l54.71-9.49c.84-.15.89-1.33.07-1.55l-54.85-14.69c-.82-.22-.77-1.41.07-1.55l54.71-9.49c.84-.15.89-1.33.07-1.55l-22.93-6.14c-.82-.22-.77-1.41.07-1.55ZM26.64,35.83l40.72-10.41c.06-.02.13-.02.2-.02h75.1c.07,0,.14,0,.21.03l64.24,17.21c.82.22.77,1.41-.07,1.55l-22.33,3.87c-.11.02-.23.01-.34-.02l-41.28-11.06-.1-.03h-75.53c-.07,0-.13,0-.2.02l-21.52,5.49c-.13.03-.27.03-.41,0l-18.7-5.1c-.79-.21-.78-1.34.01-1.54ZM177.12,49.37l-64.88,11.25c-.11.02-.23.01-.34-.02l-60.27-16.42c-.79-.21-.78-1.34.01-1.54l15.72-4.02c.06-.02.13-.02.2-.02h75.1c.07,0,.14,0,.21.03l34.33,9.2c.82.22.77,1.41-.07,1.55ZM207.03,166.51l-94.79,16.43c-.11.02-.23.01-.34-.02l-85.26-23.23c-.79-.21-.78-1.34.01-1.54l40.72-10.41c.06-.02.13-.02.2-.02h8.91c.07,0,.14,0,.21.03l35.13,9.57.18.05,40.38-7c.11-.02.23-.01.34.02l54.39,14.57c.82.22.77,1.41-.07,1.55ZM88.77,147.73h53.82c.12,0,.23.02.34.05l2.34.63c.82.22.77,1.41-.07,1.55l-32.96,5.71c-.11.02-.23.01-.34-.02l-23.33-6.36c-.9-.24-.72-1.56.21-1.56ZM207.03,139.23l-54.24,9.4c-.11.02-.23.01-.34-.02l-9.36-2.51-.1-.03h-66.07c-.07,0-.14,0-.21-.03l-50.07-13.64c-.79-.21-.78-1.34.01-1.54l40.72-10.41c.06-.02.13-.02.2-.02h8.91c.07,0,.14,0,.21.03l35.13,9.57.18.05,40.38-7c.11-.02.23-.01.34.02l54.39,14.57c.82.22.77,1.41-.07,1.55ZM88.77,120.44h53.82c.12,0,.23.02.34.05l2.34.63c.82.22.77,1.41-.07,1.55l-32.96,5.71c-.11.02-.23.01-.34-.02l-23.33-6.36c-.9-.24-.72-1.56.21-1.56ZM207.03,111.95l-54.24,9.4c-.11.02-.23.01-.34-.02l-9.36-2.51-.1-.03h-66.07c-.07,0-.14,0-.21-.03l-50.07-13.64c-.79-.21-.78-1.34.01-1.54l40.72-10.41c.06-.02.13-.02.2-.02h8.92c.07,0,.14,0,.21.03l35.13,9.57.18.05,40.38-7c.11-.02.23-.01.34.02l54.39,14.57c.82.22.77,1.41-.07,1.55ZM88.77,93.16h53.82c.12,0,.23.02.34.05l2.34.63c.82.22.77,1.41-.07,1.55l-32.96,5.71c-.11.02-.23.01-.34-.02l-23.33-6.36c-.9-.24-.72-1.56.21-1.56ZM207.03,84.67l-54.25,9.4c-.11.02-.23.01-.34-.02l-9.36-2.51-.1-.03h-66.07c-.07,0-.14,0-.21-.03l-50.07-13.64c-.79-.21-.78-1.34.01-1.54l40.72-10.41c.06-.02.13-.02.2-.02h8.92c.07,0,.14,0,.21.03l35.13,9.57.18.05,40.38-7c.11-.02.23-.01.34.02l54.39,14.57c.82.22.77,1.41-.07,1.55ZM88.77,65.88h53.82c.12,0,.23.02.34.05l2.34.63c.82.22.77,1.41-.07,1.55l-32.96,5.71c-.11.02-.23.01-.34-.02l-23.33-6.36c-.9-.24-.72-1.56.21-1.56ZM143.08,64.27l-.1-.03h-66.07c-.07,0-.14,0-.21-.03l-50.07-13.64c-.79-.21-.78-1.34.01-1.54l18.65-4.77c.13-.03.27-.03.41,0l66.11,18.02.18.05,72.3-12.53c.11-.02.23-.01.34.02l22.48,6.02c.82.22.77,1.41-.07,1.55l-54.25,9.4c-.11.02-.23.01-.34-.02l-9.36-2.51Z" fill="#FF00FF"/>
+<path d="M142.98,192.14h-75.53c-.07,0-.13,0-.2.02l-47.05,12c-.79.2-.8,1.32-.01,1.54l91.61,24.96.18.05,102.68-17.8c.84-.15.89-1.33.07-1.55l-71.65-19.19-.1-.03ZM111.89,228.99l-85.26-23.23c-.79-.21-.78-1.34.01-1.54l40.72-10.41c.06-.02.13-.02.2-.02h75.1c.07,0,.14,0,.21.03l64.24,17.21c.82.22.77,1.41-.07,1.55l-94.79,16.43c-.11.02-.23.01-.34-.02Z" fill="#FF00FF"/>
+<path d="M-256.53-138.75c11.5,83.01,11.82,173.99-30.7,248.96-32.76,57.77-95.69,111.16-166.08,105-32.25-2.83-67.32-19.81-75.3-53.77l-2.76,6.78c20.46-15.49,49.48-7.1,65.86,10.49,20.62,22.16,22.04,56.38,19.21,84.81-5.58,56.21-29.63,110.59-65.94,153.68-20.72,24.58-45.35,45.59-73.1,61.85-6.05,3.54-1.9,12.32,4.62,10.97,59.37-12.29,120.25-16.66,180.78-13.03,28.78,1.73,57.57,5.1,85.86,10.74,23.41,4.67,46.77,11.09,68.49,21.13s40.35,22.64,55.5,40.16c15.54,17.96,29.2,44.41,20.09,68.43-6.24,16.45-23.33,25.67-40.11,27.52-18.86,2.07-37.46-3.99-50.53-17.89-31.59-33.62-24.98-87.96-4.98-125.56,20.92-39.33,57.41-68.03,97.53-86.09,41.95-18.89,89.24-26.32,134.96-21.37,23.2,2.52,46.41,8.61,67.28,19.15,21.68,10.94,38.81,26.37,53.81,45.29,7.72,9.74,15.36,19.68,25.13,27.49s22.22,13.22,34.92,16.18c23.61,5.52,49.09,4.25,71.37,14.81,9.09,4.31,18,10.26,23.49,18.89,6.83,10.72,6.29,22.98,1.79,34.53-4.92,12.61-13.24,24.08-20.89,35.15-8.27,11.96-17.07,23.55-26.39,34.72-8.87,10.64-18.2,20.88-27.91,30.77-3.74,3.8-.91,10.04,4.24,10.24,53.86,2.08,107.72,4.17,161.58,6.25,5.98.23,12.23-.04,18.16.81,5.59.8,7.33,3.79,7.71,9.21.94,13.26,1.07,26.63,1.47,39.92.79,26.5,1.25,53.01,1.37,79.53.14,30.49-.17,60.98-.91,91.47l10.24-4.24c-23.45-26.06-51.89-47.63-83.33-63.14-15.46-7.63-31.64-13.9-48.25-18.52-14.04-3.91-35.54-10.03-43.91,6.71-7.26,14.53,4.06,30.66,12.83,41.55,10.44,12.95,22.15,24.86,34.73,35.74,25.76,22.26,54.88,40.27,85.17,55.66,34.57,17.56,70.67,31.9,106.75,46-.48-3.66-.96-7.31-1.43-10.97-14.5,9.03-29,18.06-43.49,27.08-6.54,4.07-.52,14.46,6.06,10.36,14.5-9.03,29-18.06,43.49-27.08,4.69-2.92,3.28-9.13-1.43-10.97-58.12-22.72-117.17-46.25-167.76-83.52-12.32-9.07-24-19.05-34.8-29.89-5.51-5.53-10.79-11.29-15.81-17.28-4.69-5.6-9.58-11.38-12.42-18.2-2.08-4.99-3.94-12.55,1.5-16.1,6.07-3.97,15.51-.63,21.85,1,15.44,3.95,30.55,9.27,45.01,15.98,32.94,15.28,62.46,37.07,86.74,64.06,3.61,4.01,10.12.71,10.24-4.24,1.38-56.99,1.24-114.01-.46-170.99-.4-13.5-.36-27.18-1.52-40.65-1.03-12.02-7.51-19.26-19.66-20.49-13.24-1.34-26.8-1.15-40.11-1.66-14.3-.55-28.59-1.11-42.89-1.66-32.25-1.25-64.5-2.49-96.75-3.74l4.24,10.24c21.25-21.63,40.59-45.12,57.71-70.15,14.91-21.81,33-48.72,19.78-75.63-10.25-20.85-35.01-31.71-56.67-35.74-26.56-4.94-57.23-3.63-79.06-22.04-10.39-8.76-18.34-19.94-26.84-30.43-8.21-10.13-17.32-19.2-27.7-27.1-19.7-15.01-42.95-25.09-66.93-30.97-48.49-11.89-101-8.2-148.08,7.94-45.02,15.44-87.07,42.59-114.86,81.78-27.45,38.7-40.38,92.35-19.17,136.82,9.57,20.07,26.77,36.11,48.68,41.27,18.96,4.47,40.7,1.86,56.93-9.39,19.85-13.77,26.46-37.41,21.1-60.47-5.86-25.21-23.57-47.17-43.45-63.04-40.76-32.55-93.66-44.83-144.27-51.86-63.93-8.88-128.76-8.89-192.71-.08-15.54,2.14-30.99,4.83-46.35,8.01l4.62,10.97c53.28-31.2,95.94-79.68,120.97-136.06,12.46-28.05,20.63-57.74,23.85-88.28,3.33-31.55.75-66.92-20.35-92.32-19.13-23.04-57.17-34.15-82.62-14.9-2.23,1.69-3.42,3.94-2.76,6.78,7.67,32.6,37.38,52.72,68.57,59.77,35.13,7.93,71.02.18,102.58-16.26,72.13-37.56,113.85-114.54,126.05-192.63,8.16-52.25,5.26-105.28-1.97-157.45-1.06-7.62-12.62-4.37-11.57,3.19h0Z" fill="#FF00FF"/>`;
+
+function normalizeQuotes(text) {
+    return text
+        .replace(/«/g, '《')
+        .replace(/»/g, '》')
+        .replace(/</g, '《')
+        .replace(/>/g, '》');
+}
+
 function parseCSV(text) {
     const rows = [];
     let row = [], cell = '', inQ = false;
@@ -250,7 +263,7 @@ function drawGroupOutlines() {
     aTextPanel.id = 'a-text-panel';
     aTextPanel.style.cssText = `
         position: fixed;
-        top: 160px;
+        top: calc(30px + 7.5vw + 40px);
         right: 55px;
         width: 22vw;
         max-height: calc(100vh - 200px);
@@ -541,7 +554,7 @@ function drawGroupOutlines() {
                     if (bioTextEl2) bioTextEl2.remove();
                     document.getElementById('connect-svg-lines')?.remove();
                     document.getElementById('connect-svg-boxes')?.remove();
-                    document.getElementById('circle-col')?.remove();
+                    document.getElementById('left-graphic')?.remove();
                     document.getElementById('text-outline-svg')?.remove();
 
                     page.appendChild(listContainer);
@@ -575,7 +588,7 @@ window.addEventListener('load', async () => {
     if (!page) return;
 
     const response = await fetch(SHEET_CSV_URL);
-    const data = await response.text();
+    const data = normalizeQuotes(await response.text());
     sheetRows = parseCSV(data);
 
     const clauses = [];
@@ -755,46 +768,35 @@ window.addEventListener('load', async () => {
         page.appendChild(svg);
     }
 
-    function buildCircleCol() {
-        document.getElementById('circle-col')?.remove();
-        const circleCol = document.createElement('div');
-        circleCol.id = 'circle-col';
-        circleCol.style.cssText = `
-        position: absolute;
+    function buildLeftGraphic() {
+        document.getElementById('left-graphic')?.remove();
+        // 뷰포트 가로/세로 모두에 맞춰 스케일을 계산해서, 창 비율이 바뀌어도
+        // 그래픽이 화면 밖으로 잘려나가지 않고 항상 전체가 보이도록 함
+        const scale = Math.min(
+            window.innerWidth / LEFT_GRAPHIC_VB.w,
+            window.innerHeight / LEFT_GRAPHIC_VB.h
+        );
+        const w = LEFT_GRAPHIC_VB.w * scale;
+        const h = LEFT_GRAPHIC_VB.h * scale;
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.id = 'left-graphic';
+        svg.setAttribute('viewBox', `0 0 ${LEFT_GRAPHIC_VB.w} ${LEFT_GRAPHIC_VB.h}`);
+        svg.setAttribute('width', w);
+        svg.setAttribute('height', h);
+        svg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
+        svg.style.cssText = `
+        position: fixed;
         top: 0;
         left: 0;
-        right: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
+        display: block;
         pointer-events: none;
         z-index: 0;
-        overflow: hidden;
     `;
-        const circleSize = Math.min(window.innerWidth / 5, window.innerHeight / 5);
-        const bioTextEl = document.getElementById('bio-text');
-        const bioHeight = bioTextEl ? bioTextEl.offsetHeight : window.innerHeight * 3;
-
-        let totalHeight = 0;
-        let idx = 0;
-        while (totalHeight < bioHeight) {
-            const size = Math.min(circleSize * (1 + idx * 0.3), window.innerWidth);
-            const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            s.setAttribute('viewBox', '0 0 100 100');
-            s.setAttribute('width', size);
-            s.setAttribute('height', size);
-            s.style.display = 'block';
-            s.style.flexShrink = '0';
-            const strokeWidth = (1.5 * circleSize / size).toFixed(2);
-            s.innerHTML = `<circle cx="50" cy="50" r="45" fill="none" stroke="#FF00FF" stroke-width="${strokeWidth}"/>`;
-            circleCol.appendChild(s);
-            totalHeight += size;
-            idx++;
-        }
-        page.appendChild(circleCol);
+        svg.innerHTML = LEFT_GRAPHIC_PATHS;
+        document.body.appendChild(svg);
     }
 
-    buildCircleCol();
+    buildLeftGraphic();
 
     const switchBtn = document.createElement('div');
     switchBtn.id = 'switch-btn';
@@ -808,7 +810,7 @@ window.addEventListener('load', async () => {
         triggered = true;
 
         closeMenu();
-        document.getElementById('circle-col')?.remove();
+        document.getElementById('left-graphic')?.remove();
         document.getElementById('text-outline-svg')?.remove();
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -873,7 +875,7 @@ window.addEventListener('load', async () => {
     let resizeOutlineTimer = null;
     window.addEventListener('resize', () => {
         applyBioFontSize();
-        if (document.getElementById('circle-col')) buildCircleCol();
+        if (document.getElementById('left-graphic')) buildLeftGraphic();
 
         if (document.getElementById('col-list')) return;
         const svgLines = document.getElementById('connect-svg-lines');
@@ -1066,7 +1068,7 @@ function goToColListDirect() {
     document.getElementById('switch-btn')?.remove();
     document.getElementById('a-text-panel')?.remove();
     document.getElementById('bio-text')?.remove();
-    document.getElementById('circle-col')?.remove();
+    document.getElementById('left-graphic')?.remove();
     document.getElementById('text-outline-svg')?.remove();
     document.getElementById('col-list')?.remove();
     document.getElementById('whose-msg')?.remove();
